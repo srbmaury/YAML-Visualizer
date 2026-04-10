@@ -745,22 +745,37 @@ const DiagramViewer = forwardRef(({
     }
   }, [activeSearchResults, activeSearchIndex, activeSearchTerm]);
 
-  // Zoom to node function
+  // Zoom to node function with improved centering
   const zoomToNode = useCallback((node) => {
     if (!svgRef.current || !node) return;
 
     const svg = d3.select(svgRef.current);
-    const transform = d3.zoomIdentity
-      .translate(dimensions.width / 3, dimensions.height / 2)
-      .scale(0.8)
-      .translate(-node.y, -node.x);
 
+    // Auto-expand parent nodes if node is hidden
+    let current = node.parent;
+    while (current) {
+      if (!current.children && current._children) {
+        current.children = current._children;
+      }
+      current = current.parent;
+    }
+
+    // Update tree if we expanded anything
+    if (updateFunctionRef.current) {
+      updateFunctionRef.current(rootRef.current);
+    }
+
+    // Center the node perfectly in viewport with optimal zoom
+    const optimalScale = 1.0; // Better zoom level to see context
+    const transform = d3.zoomIdentity
+      .translate(dimensions.width / 2, dimensions.height / 2) // Center of screen
+      .scale(optimalScale)
+      .translate(-node.y, -node.x); // Move node to center
+
+    // Smooth transition
     svg.transition()
-      .duration(750)
-      .call(
-        d3.zoom().transform,
-        transform
-      );
+      .duration(500)
+      .call(zoomBehaviorRef.current?.zoom.transform || d3.zoom().transform, transform);
   }, [dimensions.width, dimensions.height]);
 
   // Search functionality
@@ -1164,11 +1179,26 @@ const DiagramViewer = forwardRef(({
         event.preventDefault();
         setExportDialogOpen(true);
       }
+
+      // Search navigation: F3 or Cmd+G for next, Shift+F3 or Cmd+Shift+G for previous
+      if ((event.key === 'F3' || ((event.ctrlKey || event.metaKey) && event.key === 'g')) && searchResults.length > 0) {
+        event.preventDefault();
+        if (event.shiftKey) {
+          handleNavigate('prev');
+        } else {
+          handleNavigate('next');
+        }
+      }
+
+      // Escape: Clear search highlighting
+      if (event.key === 'Escape' && searchResults.length > 0) {
+        handleSearch('');
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [searchResults, handleNavigate, handleSearch]);
 
   // Mobile header toggle handler with scroll detection
   const [isHeaderHidden, setIsHeaderHidden] = useState(false);
