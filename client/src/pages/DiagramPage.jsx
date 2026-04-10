@@ -236,16 +236,21 @@ export default function DiagramPage({ parsedData: propParsedData, treeInfo: prop
         <div className="hint">
           💡 Scroll to zoom • Drag to pan • Click nodes to expand/collapse
         </div>
-        {/* Time Travel Timeline/Slider */}
+        {/* Time Travel Timeline */}
         {currentFileId && (
           <DiagramTimeTravel fileId={currentFileId} onVersionChange={handleTimeTravel} />
         )}
-        {treeInfo && (
-          <div className="tree-info">
+      </div>
+
+      {/* Second row: Tree Info only */}
+      {treeInfo && (
+        <div className="diagram-subheader">
+          <div className="tree-info-centered">
             📊 Nodes: {treeInfo.totalNodes} | Levels: {treeInfo.maxDepth + 1} | Edges: {treeInfo.totalEdges}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
       <DiagramViewer data={parsedData} treeInfo={treeInfo} treeData={treeData} />
     </div>
   );

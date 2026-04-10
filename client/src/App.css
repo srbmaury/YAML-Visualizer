@@ -856,9 +856,43 @@ body {
   flex-wrap: wrap;
 }
 
+.diagram-subheader {
+  padding: 12px 30px;
+  background: rgba(248, 250, 252, 0.95);
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  z-index: 9;
+  flex-wrap: wrap;
+}
+
 [data-theme="dark"] .diagram-header {
   background: rgba(30, 30, 46, 0.95);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .diagram-subheader {
+  background: rgba(24, 24, 37, 0.95);
+  border-bottom-color: #45475a;
+}
+
+.tree-info-centered {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 0.95em;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .tree-info-centered {
+  background: linear-gradient(135deg, #89b4fa 0%, #cba6f7 100%);
+  color: #1e1e2e;
+  box-shadow: 0 4px 12px rgba(137, 180, 250, 0.3);
 }
 
 .back-btn {
@@ -1323,6 +1357,17 @@ body {
 
   .graph-actions button {
     width: 100%;
+  }
+
+  /* Diagram subheader mobile */
+  .diagram-subheader {
+    padding: 10px 15px;
+    gap: 15px;
+  }
+
+  .tree-info-centered {
+    font-size: 0.85em;
+    padding: 6px 16px;
   }
 }
 
