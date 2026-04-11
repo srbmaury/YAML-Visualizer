@@ -3,6 +3,9 @@
  * Converts YAML/JSON to hierarchical tree structure with proper level calculations
  */
 
+/** Prevents stack overflow from pathological depth (deep node_modules chains) or YAML anchor cycles. */
+const MAX_TREE_DEPTH = 400;
+
 export function buildTreeFromYAML(yamlData) {
   const tree = {
     nodes: [],
@@ -12,19 +15,36 @@ export function buildTreeFromYAML(yamlData) {
 
   let nodeIdCounter = 0;
 
-  function createNode(data, name, level = 0, parentId = null) {
+  function createNode(data, name, level = 0, parentId = null, ancestors = new Set()) {
     // Handle null or undefined data
-    if (data === null || data === undefined) {
-      data = { value: String(data) };
+    let payload = data;
+    if (payload === null || payload === undefined) {
+      payload = { value: String(payload) };
     }
+
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      if (ancestors.has(payload)) {
+        payload = { _error: "Circular reference in YAML (anchor / duplicate object)" };
+      } else if (level > MAX_TREE_DEPTH) {
+        payload = {
+          _truncated: `Branch truncated: maximum tree depth is ${MAX_TREE_DEPTH}`,
+        };
+      }
+    }
+
+    const nextAncestors =
+      payload && typeof payload === "object" && !Array.isArray(payload)
+        ? new Set(ancestors).add(payload)
+        : ancestors;
+
     const nodeId = `node-${nodeIdCounter++}`;
     
     // Extract properties (non-object, non-array values)
     const properties = {};
     const children = [];
     
-    if (typeof data === "object" && data !== null) {
-      Object.entries(data).forEach(([key, value]) => {
+    if (typeof payload === "object" && payload !== null) {
+      Object.entries(payload).forEach(([key, value]) => {
         // Handle 'children' or 'nodes' array specially
         if ((key === "children" || key === "nodes") && Array.isArray(value)) {
           value.forEach((child, idx) => {
@@ -33,7 +53,8 @@ export function buildTreeFromYAML(yamlData) {
                 child,
                 child.name || `Child-${idx + 1}`,
                 level + 1,
-                nodeId
+                nodeId,
+                nextAncestors
               );
               children.push(childNode);
             } else {
@@ -42,7 +63,8 @@ export function buildTreeFromYAML(yamlData) {
                 { value: child },
                 `Item-${idx + 1}`,
                 level + 1,
-                nodeId
+                nodeId,
+                nextAncestors
               );
               children.push(childNode);
             }
@@ -50,26 +72,39 @@ export function buildTreeFromYAML(yamlData) {
         }
         // Handle nested objects as child nodes
         else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-          const childNode = createNode(value, key, level + 1, nodeId);
+          const childNode = createNode(value, key, level + 1, nodeId, nextAncestors);
           children.push(childNode);
         }
         // Handle arrays (convert to string)
         else if (Array.isArray(value)) {
-          properties[key] = value.map(v => 
-            typeof v === "object" ? JSON.stringify(v) : String(v)
-          ).join(", ");
+          properties[key] = value.map(v => {
+            if (typeof v === "object" && v !== null) {
+              try {
+                return JSON.stringify(v);
+              } catch {
+                return "[Object]";
+              }
+            }
+            return String(v);
+          }).join(", ");
         }
         // Legacy GitHub auto-parse: files were flattened to strings like "file .cpp (4b, abc1234)"
         // Treat as a child node so one node per file (same as object-valued files).
+        // Do NOT run this for structured file nodes (`type: file`) or for the `summary` field:
+        // auto-parse YAML sets summary: "file .json (71KB)" which matches the regex and would
+        // otherwise recurse forever as child nodes named "summary".
         else if (
           typeof value === "string" &&
-          /^file(\s+\.[\w.]+)?\s+\([\d?]+b/i.test(value.trim())
+          /^file(\s+\.[\w.]+)?\s+\([\d?]+b/i.test(value.trim()) &&
+          payload.type !== "file" &&
+          key !== "summary"
         ) {
           const childNode = createNode(
             { summary: value, type: "file" },
             key,
             level + 1,
-            nodeId
+            nodeId,
+            nextAncestors
           );
           children.push(childNode);
         }
@@ -80,7 +115,7 @@ export function buildTreeFromYAML(yamlData) {
       });
     } else {
       // Primitive data
-      properties.value = String(data);
+      properties.value = String(payload);
     }
 
     const node = {
