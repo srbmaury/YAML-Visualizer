@@ -1,0 +1,132 @@
+/* Embed Viewer Styles - Full Diagram with Controls */
+
+.embed-viewer {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  background: #f8fafc;
+}
+
+.embed-viewer.dark {
+  background: #1e1e2e;
+}
+
+/* Diagram Container - Takes full space */
+.embed-diagram {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Loading State */
+.embed-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  gap: 16px;
+  background: #f8fafc;
+}
+
+.embed-viewer.dark .embed-loading {
+  background: #1e1e2e;
+}
+
+.embed-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(25, 118, 210, 0.2);
+  border-top-color: #1976d2;
+  border-radius: 50%;
+  animation: embed-spin 0.8s linear infinite;
+}
+
+.embed-viewer.dark .embed-spinner {
+  border-color: rgba(137, 180, 250, 0.2);
+  border-top-color: #89b4fa;
+}
+
+@keyframes embed-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.embed-loading p {
+  color: #475569;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.embed-viewer.dark .embed-loading p {
+  color: #a6adc8;
+}
+
+/* Error State */
+.embed-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  gap: 12px;
+  padding: 20px;
+  text-align: center;
+  background: #f8fafc;
+}
+
+.embed-viewer.dark .embed-error {
+  background: #1e1e2e;
+}
+
+.embed-error-icon {
+  font-size: 48px;
+}
+
+.embed-error p {
+  color: #475569;
+  font-size: 14px;
+  max-width: 400px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.embed-viewer.dark .embed-error p {
+  color: #a6adc8;
+}
+
+/* Placeholder */
+.embed-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  gap: 12px;
+  background: #f8fafc;
+}
+
+.embed-viewer.dark .embed-placeholder {
+  background: #1e1e2e;
+}
+
+.embed-placeholder-icon {
+  font-size: 64px;
+  opacity: 0.5;
+}
+
+.embed-placeholder p {
+  color: #475569;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.embed-viewer.dark .embed-placeholder p {
+  color: #a6adc8;
+}

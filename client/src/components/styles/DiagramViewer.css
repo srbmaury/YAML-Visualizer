@@ -37,7 +37,7 @@
   width: 100%;
   height: 100%;
   cursor: grab;
-  background: #f8f9fa;
+  background: transparent;
 }
 
 .diagram-svg:active {
@@ -746,7 +746,7 @@
 }
 
 [data-theme="dark"] .diagram-svg {
-  background: #1e1e2e;
+  background: transparent;
 }
 
 /* Nodes */

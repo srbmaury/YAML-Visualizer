@@ -13,6 +13,7 @@ import CombinedEditorPage from "./pages/CombinedEditorPage";
 import DiffComparePage from "./pages/DiffComparePage";
 import SharedViewerPage from "./pages/SharedViewerPage";
 import SharedViewerWrapper from "./pages/SharedViewerWrapper";
+import EmbedViewerPage from "./pages/EmbedViewerPage";
 import DocsPage from "./pages/DocsPage";
 import ProfilePage from "./pages/ProfilePage";
 import AuthModal from "./components/AuthModal";
@@ -708,6 +709,7 @@ function AppContent() {
           }
         />
         <Route path="/shared/:shareId" element={<SharedViewerWrapper />} />
+        <Route path="/embed/:shareId" element={<EmbedViewerPage />} />
         <Route path="/docs" element={<DocsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>

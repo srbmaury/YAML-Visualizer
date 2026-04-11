@@ -13,6 +13,7 @@ const DiagramViewer = forwardRef(({
   treeData,
   externalSearch = false,
   hideSearch = false,
+  embedMode = false,
   onSearchResults,
   onSearchIndexChange,
   searchTerm: externalSearchTerm,
@@ -23,7 +24,9 @@ const DiagramViewer = forwardRef(({
   const svgRef = useRef(null);
   const gRef = useRef(null);
   const zoomBehaviorRef = useRef(null);
-  const { darkMode } = useTheme();
+  const { darkMode: themeDarkMode } = useTheme();
+  // Force light mode in embed mode
+  const darkMode = embedMode ? false : themeDarkMode;
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [searchResults, setSearchResults] = useState([]);
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
@@ -121,6 +124,34 @@ const DiagramViewer = forwardRef(({
     window.addEventListener("resize", updateDimensions);
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
+
+  // Initialize and update SVG background colors
+  useEffect(() => {
+    if (!svgRef.current) return;
+
+    const svg = d3.select(svgRef.current);
+
+    // Update gradient colors
+    const gradient = svg.select('#bg-gradient');
+    if (!gradient.empty()) {
+      const stops = gradient.selectAll('stop');
+      stops.each(function(_, i) {
+        const stop = d3.select(this);
+        if (i === 0) {
+          stop.attr('stop-color', darkMode ? '#1e1e2e' : '#f8f9fa');
+        } else {
+          stop.attr('stop-color', darkMode ? '#181825' : '#e2e8f0');
+        }
+      });
+    }
+
+    // Update grid pattern circle
+    const circle = svg.select('#grid-pattern circle');
+    if (!circle.empty()) {
+      circle.attr('fill', darkMode ? '#585b70' : '#cbd5e1');
+    }
+
+  }, [darkMode]);
 
   useEffect(() => {
     if (!data || !dimensions.width || !dimensions.height) return;
@@ -1239,11 +1270,11 @@ const DiagramViewer = forwardRef(({
             height="30"
             patternUnits="userSpaceOnUse"
           >
-            <circle cx="2" cy="2" r="1.5" fill={darkMode ? '#585b70' : '#cbd5e1'} opacity="0.3" />
+            <circle cx="2" cy="2" r="1.5" opacity="0.3" />
           </pattern>
           <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style={{ stopColor: darkMode ? '#1e1e2e' : '#f8f9fa', stopOpacity: 1 }} />
-            <stop offset="100%" style={{ stopColor: darkMode ? '#181825' : '#e2e8f0', stopOpacity: 1 }} />
+            <stop offset="0%" stopOpacity="1" />
+            <stop offset="100%" stopOpacity="1" />
           </linearGradient>
         </defs>
         <rect width="100%" height="100%" fill="url(#bg-gradient)" />
@@ -1251,98 +1282,106 @@ const DiagramViewer = forwardRef(({
         <g ref={gRef}></g>
       </svg>
 
-      {/* Control buttons */}
-      <div className="diagram-controls">
+      {/* Control buttons - hide in embed mode */}
+      {!embedMode && (
+        <div className="diagram-controls">
+          <button
+            className="toggle-all-btn"
+            onClick={handleToggleAll}
+            title={allExpanded ? "Collapse all nodes" : "Expand all nodes"}
+          >
+            {allExpanded ? "🔽 Collapse All" : "🔼 Expand All"}
+          </button>
+        </div>
+      )}
+
+      {/* Enhanced zoom controls - hide in embed mode */}
+      {!embedMode && (
+        <div className="zoom-controls">
+          <div className="zoom-controls-group">
+            <button
+              className="zoom-btn zoom-in-btn"
+              onClick={handleZoomIn}
+              title="Zoom in (Ctrl + +)"
+            >
+              🔍+
+            </button>
+            <button
+              className="zoom-btn zoom-out-btn"
+              onClick={handleZoomOut}
+              title="Zoom out (Ctrl + -)"
+            >
+              🔍−
+            </button>
+          </div>
+
+          <div className="zoom-controls-group">
+            <button
+              className="zoom-btn fit-btn"
+              onClick={handleZoomToFit}
+              title="Fit to screen (F)"
+            >
+              📐
+            </button>
+            <button
+              className="zoom-btn actual-size-btn"
+              onClick={handleZoomActualSize}
+              title="Actual size (1:1)"
+            >
+              📏
+            </button>
+          </div>
+
+          <div className="zoom-controls-group">
+            <button
+              className="zoom-btn reset-btn"
+              onClick={handleResetView}
+              title="Reset view (R)"
+            >
+              🏠
+            </button>
+            <button
+              className="zoom-btn export-btn"
+              onClick={handleExportClick}
+              title="Export as PNG or SVG"
+            >
+              ⬇️
+            </button>
+            <button
+              className="zoom-btn fullscreen-btn"
+              onClick={handleToggleFullscreen}
+              title={isFullscreen ? "Exit fullscreen (Esc)" : "Enter fullscreen (F11)"}
+            >
+              {isFullscreen ? "⛶" : "⛶"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile header toggle button - hide in embed mode */}
+      {!embedMode && (
         <button
-          className="toggle-all-btn"
-          onClick={handleToggleAll}
-          title={allExpanded ? "Collapse all nodes" : "Expand all nodes"}
+          className="mobile-header-toggle"
+          onClick={handleToggleMobileHeader}
+          title="Toggle header visibility"
+          style={{ display: isHeaderHidden ? 'flex' : 'none' }}
         >
-          {allExpanded ? "🔽 Collapse All" : "🔼 Expand All"}
+          ⬇️
         </button>
-      </div>
+      )}
 
-      {/* Enhanced zoom controls */}
-      <div className="zoom-controls">
-        <div className="zoom-controls-group">
-          <button
-            className="zoom-btn zoom-in-btn"
-            onClick={handleZoomIn}
-            title="Zoom in (Ctrl + +)"
-          >
-            🔍+
-          </button>
-          <button
-            className="zoom-btn zoom-out-btn"
-            onClick={handleZoomOut}
-            title="Zoom out (Ctrl + -)"
-          >
-            🔍−
-          </button>
+      {/* Node count badge - hide in embed mode */}
+      {!embedMode && (
+        <div className="node-count-badge">
+          <span className="node-count-label">Showing</span>
+          <span className="node-count-numbers">
+            {nodeCount.visible} of {nodeCount.total}
+          </span>
+          <span className="node-count-label">nodes</span>
         </div>
+      )}
 
-        <div className="zoom-controls-group">
-          <button
-            className="zoom-btn fit-btn"
-            onClick={handleZoomToFit}
-            title="Fit to screen (F)"
-          >
-            📐
-          </button>
-          <button
-            className="zoom-btn actual-size-btn"
-            onClick={handleZoomActualSize}
-            title="Actual size (1:1)"
-          >
-            📏
-          </button>
-        </div>
-
-        <div className="zoom-controls-group">
-          <button
-            className="zoom-btn reset-btn"
-            onClick={handleResetView}
-            title="Reset view (R)"
-          >
-            🏠
-          </button>
-          <button
-            className="zoom-btn export-btn"
-            onClick={handleExportClick}
-            title="Export as PNG or SVG"
-          >
-            ⬇️
-          </button>
-          <button
-            className="zoom-btn fullscreen-btn"
-            onClick={handleToggleFullscreen}
-            title={isFullscreen ? "Exit fullscreen (Esc)" : "Enter fullscreen (F11)"}
-          >
-            {isFullscreen ? "⛶" : "⛶"}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile header toggle button - only show down arrow when header is hidden */}
-      <button
-        className="mobile-header-toggle"
-        onClick={handleToggleMobileHeader}
-        title="Toggle header visibility"
-        style={{ display: isHeaderHidden ? 'flex' : 'none' }}
-      >
-        ⬇️
-      </button>
-
-      {/* Node count badge */}
-      <div className="node-count-badge">
-        <span className="node-count-label">Showing</span>
-        <span className="node-count-numbers">
-          {nodeCount.visible} of {nodeCount.total}
-        </span>
-        <span className="node-count-label">nodes</span>
-      </div>
-
-      {!externalSearch && !hideSearch && (
+      {!embedMode && !externalSearch && !hideSearch && (
         <SearchPanel
           onSearch={handleSearch}
           searchResults={searchResults}
@@ -1351,10 +1390,10 @@ const DiagramViewer = forwardRef(({
         />
       )}
 
-      <TreeInfoPanel treeInfo={treeInfo} />
+      {!embedMode && <TreeInfoPanel treeInfo={treeInfo} />}
 
-      {/* Export dialog/modal always at top level for visibility */}
-      <ExportDialog open={exportDialogOpen} onClose={handleExportDialogClose} onExport={handleExportFormat} />
+      {/* Export dialog/modal - hide in embed mode */}
+      {!embedMode && <ExportDialog open={exportDialogOpen} onClose={handleExportDialogClose} onExport={handleExportFormat} />}
     </div>
   );
 });

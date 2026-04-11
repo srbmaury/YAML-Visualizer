@@ -4,7 +4,7 @@ Convert YAML structures into interactive tree diagrams. Built with React, Node.j
 
 ![React](https://img.shields.io/badge/React-19.1.1-blue) ![Node.js](https://img.shields.io/badge/Node.js-18+-green) ![MongoDB](https://img.shields.io/badge/MongoDB-8.0+-brightgreen) ![D3.js](https://img.shields.io/badge/D3.js-7.9.0-orange) ![Express](https://img.shields.io/badge/Express-4.18+-red) ![OpenAI](https://img.shields.io/badge/OpenAI-6.7.0-purple) ![Vite](https://img.shields.io/badge/Vite-7.1.7-646CFF)
 
-**Live Demo**: [yaml-visualizer.netlify.app](https://yaml-visualizer.netlify.app) | **Project Structure**: [View as Diagram](https://yaml-visualizer.netlify.app/shared/VNfBZIq7lA)
+**Live Demo**: [yaml-visualizer.netlify.app](https://yaml-visualizer.netlify.app) | **Project Structure**: [View as Diagram](https://yaml-visualizer.netlify.app/shared/fPm0fxmttt)
 
 ---
 
@@ -101,6 +101,15 @@ Toggle light/dark themes from any page. All components and diagrams are fully th
 - Live presence bar with collaborator avatars and typing indicators
 - Real-time collaboration with Socket.IO (see multiple users editing simultaneously)
 - Export diagrams as PNG or SVG
+
+### 🎯 Embeddable Graphs
+- **Generate iframe embed codes** for any saved public graph
+- Embed interactive YAML visualizations into websites, blogs, or documentation
+- **Customizable dimensions**: Set custom width and height for your embeds
+- **Minimal UI**: Clean, focused interface designed specifically for embedding
+- **Fully interactive**: Embedded graphs support zoom, pan, expand/collapse, and all diagram features
+- **Responsive design**: Works seamlessly on all screen sizes
+- **One-click copy**: Copy-paste ready embed code with preview option
 
 ### 📈 Analytics
 - Node count, depth, and complexity metrics with YAML quality scoring
@@ -202,6 +211,10 @@ VITE_API_URL=http://localhost:5000
 
 ## 🔗 API Reference
 
+### Public Routes
+- `/shared/:shareId` - View shared YAML file with full editor interface
+- `/embed/:shareId` - Embeddable diagram view (minimal UI for iframes)
+
 ### System
 - `GET /api/health` - Health check with CORS configuration details
 
@@ -283,6 +296,54 @@ VITE_API_URL=http://localhost:5000
 - **🗄️ Database Schemas**: Visualize table relationships from migration files
 - **👥 Org Charts**: Team and role hierarchies
 - **📚 Documentation**: Interactive technical docs that never go stale
+- **🎯 Embedded Visualizations**: Embed live diagrams in blogs, wikis, Notion, Confluence, or any website
+
+---
+
+## 📊 How to Embed Graphs
+
+Want to embed an interactive diagram in your website? It's easy!
+
+### Quick Start
+
+1. **Make your graph public**
+   - Open your saved YAML file
+   - Click the **Share** button (👥 icon in the collaboration bar)
+   - Toggle "Make this file public"
+
+2. **Generate embed code**
+   - Scroll down to the "📊 Embed Code" section
+   - Customize width (e.g., `100%`, `800px`) and height (e.g., `600px`)
+   - Click "📋 Copy Embed Code"
+
+3. **Paste into your website**
+   - Paste the `<iframe>` code into your HTML
+   - That's it! Your diagram is now embedded
+
+### Example Embed Code
+
+```html
+<iframe 
+  src="https://yaml-visualizer.netlify.app/embed/YOUR_SHARE_ID" 
+  width="100%" 
+  height="600px" 
+  frameborder="0" 
+  style="border: 1px solid #ddd; border-radius: 4px;" 
+  allowfullscreen>
+</iframe>
+```
+
+### Embed Features
+
+- ✅ Fully interactive (zoom, pan, expand/collapse)
+- ✅ Works on all devices and screen sizes
+- ✅ No registration required for viewers
+- ✅ Minimal UI focused on the diagram
+- ✅ Link to open full version in YAML Visualizer
+- ✅ Supports dark mode
+- ✅ Export to PNG/SVG from embedded view
+
+**Tip**: Check out [`embed-example.html`](./embed-example.html) for more examples and customization options!
 
 ---
 

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YAML Visualizer - Embed Example</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8fafc;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #1e293b;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            font-size: 1.125rem;
+            color: #64748b;
+            margin-bottom: 40px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .section h2 {
+            font-size: 1.5rem;
+            color: #1e293b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section p {
+            color: #475569;
+            margin-bottom: 20px;
+        }
+
+        .embed-container {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f8fafc;
+        }
+
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 0.875rem;
+            margin-top: 16px;
+        }
+
+        .code-block code {
+            display: block;
+            white-space: pre;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-top: 16px;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            padding-left: 28px;
+            position: relative;
+            color: #475569;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .note {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+
+        .note strong {
+            color: #92400e;
+        }
+
+        .note p {
+            color: #78350f;
+            margin: 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        footer a {
+            color: #1d4ed8;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 YAML Visualizer Embed Examples</h1>
+        <p class="subtitle">Learn how to embed interactive YAML diagrams into your website, blog, or documentation.</p>
+
+        <div class="section">
+            <h2>🎯 Example 1: Standard Embed</h2>
+            <p>This is a full-width responsive embed with a fixed height of 600px.</p>
+            <div class="embed-container">
+                <!-- Replace SHARE_ID with your actual share ID -->
+                <iframe
+                    src="http://localhost:5173/embed/SHARE_ID"
+                    width="100%"
+                    height="600px"
+                    frameborder="0"
+                    style="border: 1px solid #ddd; border-radius: 4px;"
+                    allowfullscreen>
+                </iframe>
+            </div>
+            <div class="code-block">
+                <code>&lt;iframe src="http://localhost:5173/embed/SHARE_ID" width="100%" height="600px" frameborder="0" style="border: 1px solid #ddd; border-radius: 4px;" allowfullscreen&gt;&lt;/iframe&gt;</code>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📐 Example 2: Fixed Width Embed</h2>
+            <p>This embed has a fixed width of 800px, great for centered content.</p>
+            <div class="embed-container" style="max-width: 800px; margin: 0 auto;">
+                <!-- Replace SHARE_ID with your actual share ID -->
+                <iframe
+                    src="http://localhost:5173/embed/SHARE_ID"
+                    width="800px"
+                    height="500px"
+                    frameborder="0"
+                    style="border: 1px solid #ddd; border-radius: 4px;"
+                    allowfullscreen>
+                </iframe>
+            </div>
+            <div class="code-block">
+                <code>&lt;iframe src="http://localhost:5173/embed/SHARE_ID" width="800px" height="500px" frameborder="0" style="border: 1px solid #ddd; border-radius: 4px;" allowfullscreen&gt;&lt;/iframe&gt;</code>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🖥️ Example 3: Tall Embed for Complex Diagrams</h2>
+            <p>Use a taller height for complex diagrams with many nodes.</p>
+            <div class="embed-container">
+                <!-- Replace SHARE_ID with your actual share ID -->
+                <iframe
+                    src="http://localhost:5173/embed/SHARE_ID"
+                    width="100%"
+                    height="800px"
+                    frameborder="0"
+                    style="border: 1px solid #ddd; border-radius: 4px;"
+                    allowfullscreen>
+                </iframe>
+            </div>
+            <div class="code-block">
+                <code>&lt;iframe src="http://localhost:5173/embed/SHARE_ID" width="100%" height="800px" frameborder="0" style="border: 1px solid #ddd; border-radius: 4px;" allowfullscreen&gt;&lt;/iframe&gt;</code>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>✨ Features</h2>
+            <ul class="feature-list">
+                <li>Fully interactive diagrams with zoom, pan, and expand/collapse</li>
+                <li>Responsive design that works on all screen sizes</li>
+                <li>Minimal UI focused on the visualization</li>
+                <li>Direct link to open full version in YAML Visualizer</li>
+                <li>Dark mode support (follows system preferences)</li>
+                <li>Export capabilities (PNG/SVG)</li>
+                <li>No registration required to view embeds</li>
+            </ul>
+
+            <div class="note">
+                <strong>📝 Note:</strong>
+                <p>To embed your own diagrams, make sure your YAML file is set to "Public" in the Share modal. Then copy the generated embed code and paste it into your HTML.</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎨 Customization Tips</h2>
+            <p>You can customize the embed appearance using these CSS properties:</p>
+            <div class="code-block">
+                <code>/* Custom styling example */
+&lt;iframe
+    src="http://localhost:5173/embed/SHARE_ID"
+    width="100%"
+    height="600px"
+    frameborder="0"
+    style="
+        border: 2px solid #1d4ed8;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    "
+    allowfullscreen&gt;
+&lt;/iframe&gt;</code>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔗 How to Get Started</h2>
+            <ol style="padding-left: 20px; color: #475569;">
+                <li style="margin-bottom: 12px;">Create or open a YAML file in YAML Visualizer</li>
+                <li style="margin-bottom: 12px;">Click the "Share" button in the collaboration bar</li>
+                <li style="margin-bottom: 12px;">Enable "Make this file public"</li>
+                <li style="margin-bottom: 12px;">Scroll down to the "📊 Embed Code" section</li>
+                <li style="margin-bottom: 12px;">Customize the width and height</li>
+                <li style="margin-bottom: 12px;">Copy the generated iframe code</li>
+                <li>Paste it into your website, blog, or documentation</li>
+            </ol>
+        </div>
+    </div>
+
+    <footer>
+        <p>Made with ❤️ using <a href="http://localhost:5173" target="_blank">YAML Visualizer</a></p>
+        <p>Visit <a href="http://localhost:5173/docs" target="_blank">Documentation</a> for more information</p>
+    </footer>
+</body>
+</html>

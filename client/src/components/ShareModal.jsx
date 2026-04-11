@@ -23,6 +23,9 @@ export default function ShareModal({
 }) {
     const [isPublic, setIsPublic] = useState(fileData.isPublic);
     const [isCopied, setIsCopied] = useState(false);
+    const [isEmbedCopied, setIsEmbedCopied] = useState(false);
+    const [embedWidth, setEmbedWidth] = useState("100%");
+    const [embedHeight, setEmbedHeight] = useState("600px");
 
     useEffect(() => {
         setIsPublic(fileData.isPublic);
@@ -78,29 +81,96 @@ export default function ShareModal({
                 </div>
 
                 {isPublic && fileData?.shareId && (
-                    <div className="share-link-card">
-                        <span className="share-link-label">Share Link</span>
-                        <div className="share-link-row">
-                            <input
-                                type="text"
-                                value={`${window.location.origin}/shared/${fileData.shareId}`}
-                                readOnly
-                                className="share-link-input"
-                                onFocus={(e) => e.target.select()}
-                            />
-                            <button
-                                type="button"
-                                className="share-copy-btn"
-                                onClick={() => {
-                                    navigator.clipboard.writeText(`${window.location.origin}/shared/${fileData.shareId}`);
-                                    setIsCopied(true);
-                                    setTimeout(() => setIsCopied(false), 1200);
-                                }}
-                            >
-                                {isCopied ? "Copied" : "Copy"}
-                            </button>
+                    <>
+                        <div className="share-link-card">
+                            <span className="share-link-label">Share Link</span>
+                            <div className="share-link-row">
+                                <input
+                                    type="text"
+                                    value={`${window.location.origin}/shared/${fileData.shareId}`}
+                                    readOnly
+                                    className="share-link-input"
+                                    onFocus={(e) => e.target.select()}
+                                />
+                                <button
+                                    type="button"
+                                    className="share-copy-btn"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(`${window.location.origin}/shared/${fileData.shareId}`);
+                                        setIsCopied(true);
+                                        setTimeout(() => setIsCopied(false), 1200);
+                                    }}
+                                >
+                                    {isCopied ? "Copied" : "Copy"}
+                                </button>
+                            </div>
                         </div>
-                    </div>
+
+                        <div className="share-embed-card">
+                            <span className="share-link-label">📊 Embed Code</span>
+                            <p className="share-embed-description">
+                                Embed this interactive diagram into your website, blog, or documentation.
+                            </p>
+
+                            <div className="share-embed-options">
+                                <div className="share-embed-option">
+                                    <label htmlFor="embed-width">Width:</label>
+                                    <input
+                                        id="embed-width"
+                                        type="text"
+                                        value={embedWidth}
+                                        onChange={(e) => setEmbedWidth(e.target.value)}
+                                        placeholder="e.g., 100%, 800px"
+                                        className="share-embed-size-input"
+                                    />
+                                </div>
+                                <div className="share-embed-option">
+                                    <label htmlFor="embed-height">Height:</label>
+                                    <input
+                                        id="embed-height"
+                                        type="text"
+                                        value={embedHeight}
+                                        onChange={(e) => setEmbedHeight(e.target.value)}
+                                        placeholder="e.g., 600px, 80vh"
+                                        className="share-embed-size-input"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="share-embed-code-container">
+                                <textarea
+                                    value={`<iframe src="${window.location.origin}/embed/${fileData.shareId}" width="${embedWidth}" height="${embedHeight}" frameborder="0" style="border: 1px solid #ddd; border-radius: 4px;" allowfullscreen></iframe>`}
+                                    readOnly
+                                    className="share-embed-code"
+                                    rows="4"
+                                    onFocus={(e) => e.target.select()}
+                                />
+                                <button
+                                    type="button"
+                                    className="share-copy-btn share-embed-copy-btn"
+                                    onClick={() => {
+                                        const embedCode = `<iframe src="${window.location.origin}/embed/${fileData.shareId}" width="${embedWidth}" height="${embedHeight}" frameborder="0" style="border: 1px solid #ddd; border-radius: 4px;" allowfullscreen></iframe>`;
+                                        navigator.clipboard.writeText(embedCode);
+                                        setIsEmbedCopied(true);
+                                        setTimeout(() => setIsEmbedCopied(false), 1200);
+                                    }}
+                                >
+                                    {isEmbedCopied ? "✓ Copied!" : "📋 Copy Embed Code"}
+                                </button>
+                            </div>
+
+                            <div className="share-embed-preview-link">
+                                <a
+                                    href={`${window.location.origin}/embed/${fileData.shareId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="share-embed-preview-btn"
+                                >
+                                    👁️ Preview Embedded View
+                                </a>
+                            </div>
+                        </div>
+                    </>
                 )}
 
                 {getUserId(user) === `${fileData.owner}` && (
