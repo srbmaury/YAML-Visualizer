@@ -1,8 +1,21 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+/** Same API host as REST, without /api — avoids prod misconfig when only VITE_API_BASE_URL is set. */
+function getSocketBaseUrl() {
+  const explicit = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL;
+  if (explicit) return String(explicit).replace(/\/$/, '');
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+  return apiBase.replace(/\/?api\/?$/i, '');
+}
+
+const SOCKET_URL = getSocketBaseUrl();
 
 let socket = null;
+
+function refreshSocketAuth(s) {
+  const token = localStorage.getItem('auth_token');
+  s.auth = { ...(typeof s.auth === 'object' && s.auth ? s.auth : {}), token };
+}
 
 /**
  * Get or create the singleton socket connection.
@@ -14,7 +27,7 @@ export function getSocket() {
 
   socket = io(SOCKET_URL, {
     transports: ['websocket', 'polling'],
-      withCredentials: true,
+    withCredentials: true,
     auth: {
       token: localStorage.getItem('auth_token'),
     },
@@ -24,8 +37,11 @@ export function getSocket() {
     reconnectionDelayMax: 5000,
   });
 
+  refreshSocketAuth(socket);
+  socket.io.on('reconnect_attempt', () => refreshSocketAuth(socket));
+
   socket.on('connect', () => {
-    console.log('🔌 Socket connected:', socket.id);
+    console.log('🔌 Socket connected:', socket.id, '→', SOCKET_URL);
   });
 
   socket.on('connect_error', (err) => {

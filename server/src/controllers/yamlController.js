@@ -4,6 +4,7 @@ import YamlFile from '../models/YamlFile.js';
 import VersionHistory from '../models/VersionHistory.js';
 import User from '../models/User.js';
 import { calculateChangeStats, generateChangeSummary, calculateDelta, shouldCreateSnapshot } from '../services/deltaService.js';
+import { getCanonicalYamlContentForFile } from './versionController.js';
 
 export const createYamlFile = async (req, res) => {
   try {
@@ -205,7 +206,12 @@ export const getYamlFileById = async (req, res) => {
     ) {
       return res.status(403).json({ error: 'Access denied. You do not have permission to view this file.' });
     }
-    res.json({ yamlFile });
+    const yamlOut = yamlFile.toObject();
+    const canonical = await getCanonicalYamlContentForFile(id);
+    if (canonical != null) {
+      yamlOut.content = canonical;
+    }
+    res.json({ yamlFile: yamlOut });
   } catch (error) {
     console.error('Get YAML file error:', error);
 
@@ -261,7 +267,12 @@ export const getSharedYamlFile = async (req, res) => {
       });
     }
     yamlFile.incrementViews().catch(console.error);
-    res.json({ yamlFile });
+    const yamlOut = yamlFile.toObject();
+    const canonical = await getCanonicalYamlContentForFile(yamlFile._id);
+    if (canonical != null) {
+      yamlOut.content = canonical;
+    }
+    res.json({ yamlFile: yamlOut });
   } catch (error) {
     console.error('Get shared YAML file error:', error);
     res.status(500).json({
@@ -292,10 +303,12 @@ export const updateYamlFile = async (req, res) => {
       return res.status(403).json({ error: 'Access denied. You do not have permission to edit this file.' });
     }
     // If content is being updated, create a new version using the new version history system
-    if (content && content !== yamlFile.content) {
+    const head = await getCanonicalYamlContentForFile(yamlFile._id);
+    const headStr = head ?? '';
+    if (content && content !== headStr) {
       const latestVersion = await VersionHistory.getLatestVersion(yamlFile._id);
       const newVersionNumber = latestVersion + 1;
-      let previousContent = yamlFile.content || '';
+      const previousContent = headStr;
       const delta = calculateDelta(previousContent, content);
       const changeStats = calculateChangeStats(delta);
       const summary = generateChangeSummary(delta, previousContent, content);

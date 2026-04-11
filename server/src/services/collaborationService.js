@@ -2,9 +2,13 @@ import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import YamlFile from '../models/YamlFile.js';
+import { getCanonicalYamlContentForFile } from '../controllers/versionController.js';
 
 // In-memory room state: tracks document content, users, and operation history per file
 const rooms = new Map();
+
+// Store Socket.IO instance for external use
+let socketIOInstance = null;
 
 function getRoom(fileId) {
     if (!rooms.has(fileId)) {
@@ -194,7 +198,8 @@ export function initializeSocketServer(httpServer, corsOptions) {
 
                 // Only owner or users with explicit view/edit permission can join the collab room
                 const canEdit = isOwner || permission === 'edit';
-                const canView = canEdit || permission === 'view';
+                // Public files: allow view so anonymous clients can join (diagram / shared links).
+                const canView = canEdit || permission === 'view' || file.isPublic;
 
                 if (!canView) {
                     socket.emit('collab-error', { message: 'Access denied' });
@@ -213,9 +218,10 @@ export function initializeSocketServer(httpServer, corsOptions) {
 
                 const room = getRoom(fileId);
 
-                // Initialize room content from DB if first user
+                // Initialize room content from DB if first user (canonical = version history head)
                 if (room.content === null) {
-                    room.content = file.content || '';
+                    const canonical = await getCanonicalYamlContentForFile(fileId);
+                    room.content = canonical != null ? canonical : (file.content || '');
                     room.version = 0;
                 }
 
@@ -420,5 +426,39 @@ export function initializeSocketServer(httpServer, corsOptions) {
         }
     }
 
+    // Store io instance for external use
+    socketIOInstance = io;
+
     return io;
+}
+
+// Export function to notify clients of file updates (e.g., from GitHub webhooks)
+export function notifyFileUpdate(fileId, newContent) {
+    if (!socketIOInstance) {
+        console.warn('Socket.IO not initialized, cannot notify file update');
+        return;
+    }
+
+    const room = getRoom(fileId);
+    const roomId = `file:${fileId}`;
+
+    // Update room content
+    room.content = newContent;
+    room.version++;
+
+    // Broadcast to all connected clients in this room
+    socketIOInstance.to(roomId).emit('github-sync', {
+        content: newContent,
+        version: room.version,
+        timestamp: new Date().toISOString(),
+        source: 'github'
+    });
+
+    socketIOInstance.in(roomId).fetchSockets().then((sockets) => {
+        if (sockets.length === 0) {
+            console.warn(`📢 GitHub update saved for file ${fileId}, but no Socket.IO clients in ${roomId} (diagram may be open without join or after disconnect).`);
+        } else {
+            console.log(`📢 Notified ${sockets.length} client(s) in ${roomId} of GitHub update`);
+        }
+    }).catch(() => {});
 }

@@ -9,15 +9,16 @@ import "./styles/DiagramTimeTravel.css";
  * Props:
  *   fileId: string (YAML file ID)
  *   onVersionChange: function(versionNumber, yamlContent)
+ *   refreshKey: bump when new versions may exist (e.g. after GitHub sync) so the list reloads
  */
-export default function DiagramTimeTravel({ fileId, onVersionChange }) {
+export default function DiagramTimeTravel({ fileId, onVersionChange, refreshKey = 0 }) {
     const [versions, setVersions] = useState([]);
     const [selectedVersion, setSelectedVersion] = useState(null);
     const [loading, setLoading] = useState(false);
     const lastContentRef = useRef("");
     const debounceTimeout = useRef(null);
 
-    // Fetch version history on mount or fileId change
+    // Fetch version history on mount, fileId change, or after remote sync (refreshKey)
     useEffect(() => {
         if (!fileId) return;
         setLoading(true);
@@ -25,11 +26,12 @@ export default function DiagramTimeTravel({ fileId, onVersionChange }) {
             .then((res) => {
                 setVersions(res.versions || []);
                 if (res.versions && res.versions.length > 0) {
-                    setSelectedVersion(res.versions[0].version);
+                    const latest = res.versions[0].version;
+                    setSelectedVersion(latest);
                 }
             })
             .finally(() => setLoading(false));
-    }, [fileId]);
+    }, [fileId, refreshKey]);
 
     // Debounced fetch for version content
     useEffect(() => {
@@ -79,4 +81,5 @@ export default function DiagramTimeTravel({ fileId, onVersionChange }) {
 DiagramTimeTravel.propTypes = {
     fileId: PropTypes.string.isRequired,
     onVersionChange: PropTypes.func.isRequired,
+    refreshKey: PropTypes.number,
 };

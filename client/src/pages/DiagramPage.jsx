@@ -2,9 +2,12 @@ import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import DiagramViewer from "../components/DiagramViewer";
 import DiagramTimeTravel from "../components/DiagramTimeTravel";
+import GitHubIntegrationModal from "../components/GitHubIntegrationModal";
 import { useYamlFile } from "../hooks/useYamlFile";
 import { useTheme } from "../hooks/useTheme";
 import { buildTreeFromYAML, convertToD3Hierarchy } from "../utils/treeBuilder";
+import { getSocket, joinFileRoom, leaveFileRoom } from "../services/socket";
+import apiService from "../services/apiService";
 import yaml from "js-yaml";
 
 export default function DiagramPage({ parsedData: propParsedData, treeInfo: propTreeInfo, treeData: propTreeData, isAuthenticated }) {
@@ -16,6 +19,7 @@ export default function DiagramPage({ parsedData: propParsedData, treeInfo: prop
   const [treeData, setTreeData] = useState(propTreeData);
   const [loading, setLoading] = useState(false);
   const [yamlText, setYamlText] = useState("");
+  const [showGitHubModal, setShowGitHubModal] = useState(false);
   // For time travel (removed unused selectedVersion)
   // Handler for DiagramTimeTravel
   const handleTimeTravel = useMemo(() => {
@@ -53,6 +57,10 @@ export default function DiagramPage({ parsedData: propParsedData, treeInfo: prop
     };
   }, []);
   const previousAuthState = useRef(isAuthenticated);
+  /** Last seen GitHub integration `lastSyncedAt` (ms). Drives refetch when modal “time” moves. */
+  const lastGithubSyncMsRef = useRef(null);
+  /** Bump so DiagramTimeTravel reloads version list after GitHub sync / remote YAML update. */
+  const [versionHistoryRefreshKey, setVersionHistoryRefreshKey] = useState(0);
 
   // Use the custom hook to load YAML file by ID if present in URL
   const { loading: fileLoading, error: fileError, fileData } = useYamlFile(setYamlText, isAuthenticated);
@@ -145,6 +153,81 @@ export default function DiagramPage({ parsedData: propParsedData, treeInfo: prop
     }
   }, [yamlText]); // Removed navigate dependency
 
+  // Poll GitHub integration `lastSyncedAt` (also covers Socket.IO misses: CORS, URL, reconnect).
+  // When it advances, reload YAML from API so the graph matches DB.
+  useEffect(() => {
+    if (!currentFileId || !isAuthenticated) return;
+
+    let cancelled = false;
+
+    const pollIntegration = async () => {
+      try {
+        const data = await apiService.getGithubIntegration(currentFileId);
+        if (cancelled) return;
+        const iso = data?.integration?.lastSyncedAt;
+        if (!iso) return;
+        const ms = new Date(iso).getTime();
+        if (lastGithubSyncMsRef.current != null && ms > lastGithubSyncMsRef.current) {
+          const { yamlFile } = await apiService.getYamlFile(currentFileId);
+          if (yamlFile?.content != null) {
+            setYamlText(yamlFile.content);
+            setVersionHistoryRefreshKey((k) => k + 1);
+          }
+        }
+        lastGithubSyncMsRef.current = ms;
+      } catch {
+        lastGithubSyncMsRef.current = null;
+      }
+    };
+
+    const interval = setInterval(pollIntegration, 4000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') pollIntegration();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    pollIntegration();
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [currentFileId, isAuthenticated]);
+
+  // WebSocket: re-join on every connect (rooms drop on disconnect); updates flow yamlText → graph.
+  useEffect(() => {
+    if (!currentFileId) return;
+
+    const socket = getSocket();
+
+    const handleGitHubSync = ({ content }) => {
+      if (content != null && String(content).length) {
+        setYamlText(content);
+        setVersionHistoryRefreshKey((k) => k + 1);
+      }
+    };
+
+    const onCollabError = (payload) => {
+      console.warn('Socket room join failed (diagram will still poll for updates):', payload?.message || payload);
+    };
+
+    const rejoinRoom = () => {
+      joinFileRoom(currentFileId);
+    };
+
+    socket.on('github-sync', handleGitHubSync);
+    socket.on('collab-error', onCollabError);
+    socket.on('connect', rejoinRoom);
+    rejoinRoom();
+
+    return () => {
+      socket.off('github-sync', handleGitHubSync);
+      socket.off('collab-error', onCollabError);
+      socket.off('connect', rejoinRoom);
+      leaveFileRoom(currentFileId);
+    };
+  }, [currentFileId]);
+
   if (loading || fileLoading) {
     return (
       <div className="diagram-container">
@@ -232,13 +315,26 @@ export default function DiagramPage({ parsedData: propParsedData, treeInfo: prop
         >
           {darkMode ? '☀️' : '🌙'}
         </button>
+        {currentFileId && isAuthenticated && (
+          <button
+            className="back-btn"
+            onClick={() => setShowGitHubModal(true)}
+            title="GitHub Integration"
+          >
+            🐙 GitHub Sync
+          </button>
+        )}
         <h2>Interactive Diagram View</h2>
         <div className="hint">
           💡 Scroll to zoom • Drag to pan • Click nodes to expand/collapse
         </div>
         {/* Time Travel Timeline */}
         {currentFileId && (
-          <DiagramTimeTravel fileId={currentFileId} onVersionChange={handleTimeTravel} />
+          <DiagramTimeTravel
+            fileId={currentFileId}
+            onVersionChange={handleTimeTravel}
+            refreshKey={versionHistoryRefreshKey}
+          />
         )}
       </div>
 
@@ -252,6 +348,15 @@ export default function DiagramPage({ parsedData: propParsedData, treeInfo: prop
       )}
 
       <DiagramViewer data={parsedData} treeInfo={treeInfo} treeData={treeData} />
+
+      {/* GitHub Integration Modal */}
+      {currentFileId && (
+        <GitHubIntegrationModal
+          isOpen={showGitHubModal}
+          onClose={() => setShowGitHubModal(false)}
+          fileId={currentFileId}
+        />
+      )}
     </div>
   );
 }

@@ -525,6 +525,82 @@ async function reconstructContentAtVersion(fileId, targetVersion) {
 }
 
 /**
+ * Persist YAML content and append VersionHistory (same contract as editor saves).
+ * GitHub sync must use this so time-travel / delta reconstruction matches YamlFile.content.
+ */
+export async function saveYamlWithVersionHistory(fileId, content, authorId, options = {}) {
+  const message = options.message ?? 'GitHub sync';
+  const saveType = options.saveType ?? 'auto';
+
+  const yamlFile = await YamlFile.findById(fileId);
+  if (!yamlFile) {
+    throw new Error('YAML file not found');
+  }
+
+  const latestVersion = await VersionHistory.getLatestVersion(fileId);
+  let previousContent = '';
+  if (latestVersion > 0) {
+    previousContent = await reconstructContentAtVersion(fileId, latestVersion);
+  }
+
+  const newVersionNumber = latestVersion + 1;
+  const delta = calculateDelta(previousContent, content);
+  const changeStats = calculateChangeStats(delta);
+  const summary = generateChangeSummary(delta, previousContent, content);
+  const shouldSnapshot = shouldCreateSnapshot(newVersionNumber, delta.length);
+
+  await VersionHistory.create({
+    fileId,
+    version: newVersionNumber,
+    delta: shouldSnapshot ? [] : delta,
+    isSnapshot: shouldSnapshot,
+    snapshotContent: shouldSnapshot ? content : null,
+    author: authorId,
+    message,
+    changeMetadata: {
+      summary,
+      linesChanged: {
+        added: changeStats.linesAdded,
+        removed: changeStats.linesRemoved,
+        modified: Math.max(changeStats.linesAdded, changeStats.linesRemoved)
+      },
+      characterDelta: changeStats.characterDelta,
+      saveType
+    },
+    deltaSize: delta.length
+  });
+
+  yamlFile.content = content;
+  yamlFile.currentVersion = newVersionNumber;
+  yamlFile.markModified('content');
+  yamlFile.updatedAt = new Date();
+  await yamlFile.save();
+
+  return yamlFile;
+}
+
+/**
+ * Canonical "head" YAML for a file: reconstruct at latest VersionHistory row when any exist,
+ * otherwise the Yaml document's content field (legacy / pre-version files).
+ */
+export async function getCanonicalYamlContentForFile(fileId) {
+  const yamlFile = await YamlFile.findById(fileId).select('content');
+  if (!yamlFile) {
+    return null;
+  }
+  const latest = await VersionHistory.getLatestVersion(fileId);
+  if (latest < 1) {
+    return yamlFile.content ?? '';
+  }
+  try {
+    return await reconstructContentAtVersion(fileId, latest);
+  } catch (err) {
+    console.warn('getCanonicalYamlContentForFile: reconstruct failed, using document content:', err.message);
+    return yamlFile.content ?? '';
+  }
+}
+
+/**
  * Internal helper for creating versions
  */
 async function createVersionInternal(fileId, content, userId, message, saveType) {

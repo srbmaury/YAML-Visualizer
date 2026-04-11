@@ -296,6 +296,21 @@ export function useCollaboration(fileId, localContent, setLocalContent, enabled 
             }
         };
 
+        // Handle GitHub webhook sync updates
+        const handleGitHubSync = ({ content, version }) => {
+            console.log('🐙 GitHub sync received - updating content');
+            versionRef.current = version;
+            contentRef.current = content;
+            lastSentContentRef.current = content;
+            pendingContentRef.current = null;
+            setLocalContent(content);
+
+            // Show notification to user
+            if (window.showToast) {
+                window.showToast('GitHub sync: File updated from repository', 'success');
+            }
+        };
+
         socket.on('connect', handleConnect);
         socket.on('disconnect', handleDisconnect);
         socket.on('file-state', handleFileState);
@@ -306,6 +321,7 @@ export function useCollaboration(fileId, localContent, setLocalContent, enabled 
         socket.on('ack', handleAck);
         socket.on('remote-cursor', handleRemoteCursor);
         socket.on('user-typing', handleUserTyping);
+        socket.on('github-sync', handleGitHubSync);
         socket.on('collab-error', handleError);
 
         // Join the file room:
@@ -327,6 +343,7 @@ export function useCollaboration(fileId, localContent, setLocalContent, enabled 
             socket.off('ack', handleAck);
             socket.off('remote-cursor', handleRemoteCursor);
             socket.off('user-typing', handleUserTyping);
+            socket.off('github-sync', handleGitHubSync);
             socket.off('collab-error', handleError);
 
             leaveFileRoom(fileId);

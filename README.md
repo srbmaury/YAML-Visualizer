@@ -6,6 +6,18 @@ Convert YAML structures into interactive tree diagrams. Built with React, Node.j
 
 ---
 
+## 🔥 **What's New: GitHub Auto-Sync!**
+
+> **🐙 Keep your diagrams in perfect sync with your codebase**
+> 
+> Connect any GitHub repository and automatically update your YAML diagrams on every push. Perfect for living architecture documentation, config monitoring, and codebase exploration.
+>
+> ✨ **Two modes**: Auto-parse entire repo structure OR sync specific YAML files  
+> 🔄 **Zero-config**: Set up webhook once, updates happen automatically  
+> 🚀 **Real-time**: Diagram updates within seconds of pushing to GitHub
+
+---
+
 ## ✨ **Core Capabilities**
 
 **🌗 Dark mode:** Toggle light/dark themes from any page. All components and diagrams are fully themed and your preference is remembered.
@@ -32,10 +44,34 @@ Convert YAML structures into interactive tree diagrams. Built with React, Node.j
 - Real-time diagram updates as you type
 - Drag-to-resize panels (20%–80%), responsive on desktop and mobile
 
-### 📊 **GitHub Repository Integration**
-- Import any public GitHub repository as a YAML tree
-- Auto-limited to 500 nodes; skips `node_modules`, `.git`, `build`, `dist`
-- Handles rate limits, timeouts, and private repo errors gracefully
+### 🐙 **GitHub Integration & Auto-Sync** ⭐ NEW!
+**Two powerful modes to keep your diagrams in sync with GitHub:**
+
+#### 🌳 Auto-Parse Repository Structure (Recommended)
+- Automatically visualize your **entire repository structure** as a YAML tree
+- **Real-time webhook sync**: Diagram auto-updates on every push to GitHub
+- Perfect for **architecture documentation** and **codebase exploration**
+- Auto-limited to 500 nodes; intelligently skips `node_modules`, `.git`, `build`, `dist`
+
+#### 📄 Sync Specific YAML File
+- Sync a **specific YAML file** from your repository
+- **Automatic updates**: Changes pushed to GitHub instantly update your diagram
+- Perfect for **config files**, **CI/CD pipelines**, and **documentation**
+
+#### 🔄 How It Works
+1. Click the **🐙 GitHub icon** in your diagram
+2. Choose your sync mode and enter repository details
+3. Copy the webhook URL and secret
+4. Add webhook to your GitHub repository settings
+5. **Done!** Your diagram now auto-updates on every push
+
+#### ✨ Features
+- ✅ **Zero-config auto-sync** via GitHub webhooks
+- ✅ **Manual sync** with one-click refresh
+- ✅ **Branch-specific** monitoring (main, dev, staging, etc.)
+- ✅ **Webhook security** with HMAC-SHA256 signatures
+- ✅ **Rate limit handling** with optional GitHub token
+- ✅ Works with **public and private** repositories (with token)
 
 ### 🤖 **AI Assistant**
 - Generate YAML from plain English descriptions
@@ -150,15 +186,27 @@ JWT_SECRET=your-secure-jwt-secret
 # CORS
 CORS_ORIGIN=http://localhost:5173
 
-# Optional Feature
+# GitHub Integration (Optional)
+API_BASE_URL=http://localhost:5000
+GITHUB_TOKEN=your-github-personal-access-token
+
+# AI Features (Optional)
 OPENAI_API_KEY=your-openai-api-key
 ```
+
+**GitHub Token Setup (Optional but Recommended):**
+- Without token: 60 GitHub API requests/hour
+- With token: 5,000 requests/hour
+- Get your token at: https://github.com/settings/tokens
+- Required scopes: `public_repo` (or `repo` for private repos)
 
 ***client (`.env`):***
 ```env
 # API Configuration
 VITE_API_BASE_URL=http://localhost:5000/api
-VITE_API_URL=http://localhost:5000
+
+# Optional: OpenAI API Key (client-side, not recommended for production)
+# VITE_OPENAI_API_KEY=your-openai-api-key
 ```
 
 ---
@@ -193,9 +241,32 @@ children:
    - name: package.json
 ```
 
-### GitHub Repository Import
+### GitHub Integration Setup
 
+#### Quick Import (One-Time)
 Use **File ▾ → Import Repo**, enter a public GitHub URL (`https://github.com/owner/repo`), and the structure is converted to YAML. Auto-limited to 500 nodes; skips `node_modules`, `.git`, `build`, `dist`.
+
+#### Auto-Sync Setup (Continuous Updates)
+1. **Connect to GitHub**:
+   - Click the **🐙** icon in any saved diagram
+   - Choose your mode:
+     - **🌳 Auto-Parse Repo Structure**: Visualize entire codebase
+     - **📄 Sync Specific YAML File**: Sync individual config file
+   - Enter repository details (owner, repo, branch)
+   - Click **"Connect to GitHub"**
+
+2. **Set Up Webhook**:
+   - Copy the provided webhook URL and secret
+   - Go to your GitHub repo → **Settings** → **Webhooks** → **Add webhook**
+   - Paste the webhook URL and secret
+   - Content type: `application/json`
+   - Events: **Just the push event**
+   - Click **Add webhook**
+
+3. **Done!** Your diagram now auto-updates on every push
+
+#### Manual Sync
+If you prefer not to set up webhooks, use the **"🔄 Sync Now"** button to manually fetch the latest changes from GitHub.
 
 ---
 
@@ -225,6 +296,14 @@ Use **File ▾ → Import Repo**, enter a public GitHub URL (`https://github.com
 - `GET /api/files/:id/versions` - Get version history
 - `GET /api/files/:id/versions/:version` - Get specific version content
 - `POST /api/files/:id/versions/:version/revert` - Revert file to a version
+
+### GitHub Integration
+- `POST /api/github/connect` - Connect specific YAML file from repository
+- `POST /api/github/connect-repo` - Auto-parse entire repository structure
+- `GET /api/github/integration/:yamlFileId` - Get integration details for a file
+- `POST /api/github/sync/:integrationId` - Manually sync from GitHub
+- `DELETE /api/github/disconnect/:integrationId` - Disconnect GitHub integration
+- `POST /api/github/webhook/:integrationId` - GitHub webhook endpoint (called by GitHub)
 
 ### User Management & Profile
 - `GET /api/user/profile` - Get detailed user profile with statistics
@@ -292,6 +371,7 @@ Use **File ▾ → Import Repo**, enter a public GitHub URL (`https://github.com
 | Button | Function |
 |--------|----------|
 | `🎨 Visualize` | Parse YAML and open full-page diagram view |
+| `🐙 GitHub` | Open GitHub integration modal (sync repo or file) |
 | `🤖 AI` | Open AI assistant panel |
 | `⌨️` | Show keyboard shortcuts panel |
 | `🏠` | Navigate to home page |
@@ -319,17 +399,19 @@ Use **File ▾ → Import Repo**, enter a public GitHub URL (`https://github.com
 
 ## 🌟 Use Cases
 
-- **⏳ Time Travel Diagrams**: Instantly visualize and compare your YAML structure at any point in its version history.
-- **🏢 System Architecture**: Visualize microservices and dependencies
-- **📋 Configuration Docs**: Map complex config file structures
+- **🐙 Living Architecture Docs**: Auto-sync your codebase structure and keep architecture diagrams always up-to-date with GitHub webhooks
+- **🔄 Config File Monitoring**: Real-time visualization of Kubernetes configs, CI/CD pipelines, or Docker Compose files as they change
+- **⏳ Time Travel Diagrams**: Instantly visualize and compare your YAML structure at any point in its version history
+- **🏢 System Architecture**: Visualize microservices and dependencies with auto-updates from your repo
+- **📋 Configuration Docs**: Map complex config file structures with automatic sync from GitHub
 - **🗂️ Data Hierarchies**: Explore nested data relationships
-- **📁 Code Repository Structure**: Import and visualize GitHub repository hierarchies
-- **🔌 API Documentation**: Show endpoint relationships and structure
-- **🧩 Component Trees**: Display UI component hierarchies
-- **🚀 CI/CD Pipelines**: Map deployment and build processes
-- **🗄️ Database Schemas**: Visualize table relationships
+- **📁 Code Repository Structure**: Import and visualize GitHub repository hierarchies with real-time updates
+- **🔌 API Documentation**: Show endpoint relationships and structure that stay in sync with your OpenAPI/Swagger files
+- **🧩 Component Trees**: Display UI component hierarchies that update as your codebase evolves
+- **🚀 CI/CD Pipelines**: Map deployment and build processes with live updates from `.github/workflows`
+- **🗄️ Database Schemas**: Visualize table relationships from migration files
 - **👥 Org Charts**: Display team and role hierarchies
-- **📚 Documentation**: Create interactive technical documentation
+- **📚 Documentation**: Create interactive technical documentation that never goes stale
 
 ---
 

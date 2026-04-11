@@ -59,6 +59,20 @@ export function buildTreeFromYAML(yamlData) {
             typeof v === "object" ? JSON.stringify(v) : String(v)
           ).join(", ");
         }
+        // Legacy GitHub auto-parse: files were flattened to strings like "file .cpp (4b, abc1234)"
+        // Treat as a child node so one node per file (same as object-valued files).
+        else if (
+          typeof value === "string" &&
+          /^file(\s+\.[\w.]+)?\s+\([\d?]+b/i.test(value.trim())
+        ) {
+          const childNode = createNode(
+            { summary: value, type: "file" },
+            key,
+            level + 1,
+            nodeId
+          );
+          children.push(childNode);
+        }
         // Regular properties
         else {
           properties[key] = String(value);

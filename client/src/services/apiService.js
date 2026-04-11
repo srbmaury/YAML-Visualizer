@@ -112,6 +112,10 @@ class ApiService {
     return this.request(`/yaml/${id}`);
   }
 
+  async getGithubIntegration(yamlFileId) {
+    return this.request(`/github/integration/${yamlFileId}`);
+  }
+
   async updateYamlFile(id, yamlData) {
     return this.request(`/yaml/${id}`, {
       method: 'PUT',
