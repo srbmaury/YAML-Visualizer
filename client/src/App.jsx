@@ -330,9 +330,12 @@ function AppContent() {
 
                 if (result && result.id) {
                   setCurrentFileId(result.id);
+                  showSuccess(`Original graph "${graphData.title}" replaced successfully!`);
+                  // Redirect to the file's editor page
+                  navigate(`/editor/${result.id}`);
+                } else {
+                  showSuccess(`Original graph "${graphData.title}" replaced successfully!`);
                 }
-
-                showSuccess(`Original graph "${graphData.title}" replaced successfully!`);
                 return;
               }
             } else {
@@ -349,9 +352,12 @@ function AppContent() {
 
             if (copyResult && copyResult.id) {
               setCurrentFileId(copyResult.id);
+              showSuccess(`Copy of "${graphData.title}" saved to your account successfully!`);
+              // Redirect to the new file's editor page
+              navigate(`/editor/${copyResult.id}`);
+            } else {
+              showSuccess(`Copy of "${graphData.title}" saved to your account successfully!`);
             }
-
-            showSuccess(`Copy of "${graphData.title}" saved to your account successfully!`);
             return;
           }
         }
@@ -369,9 +375,14 @@ function AppContent() {
         // Set the current file ID for version history
         if (result && result.id) {
           setCurrentFileId(result.id);
+          showSuccess(`Graph "${graphData.title}" updated successfully!`);
+          // Redirect to the file's editor page (in case we're on home page)
+          if (location.pathname === '/') {
+            navigate(`/editor/${result.id}`);
+          }
+        } else {
+          showSuccess(`Graph "${graphData.title}" updated successfully!`);
         }
-
-        showSuccess(`Graph "${graphData.title}" updated successfully!`);
       } else {
         // Create new graph
         const result = await saveGraph({
@@ -384,9 +395,12 @@ function AppContent() {
         // Set the current file ID for version history
         if (result && result.id) {
           setCurrentFileId(result.id);
+          showSuccess(`Graph "${graphData.title}" saved successfully!`);
+          // Redirect to the new file's editor page
+          navigate(`/editor/${result.id}`);
+        } else {
+          showSuccess(`Graph "${graphData.title}" saved successfully!`);
         }
-
-        showSuccess(`Graph "${graphData.title}" saved successfully!`);
       }
     } catch (err) {
       showError(`Failed to save graph: ${err.message}`);

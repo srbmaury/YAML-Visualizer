@@ -861,6 +861,11 @@ const DiagramViewer = forwardRef(({
       setSearchResults(results); // Set internal results for highlighting
       onSearchResults && onSearchResults(results);
 
+      // Auto-focus first result if search has results
+      if (results.length > 0 && results[0].node) {
+        zoomToNode(results[0].node);
+      }
+
       // For combined editor: dispatch custom event with results
       if (hideSearch) {
         window.dispatchEvent(new CustomEvent('diagramSearchComplete', {
@@ -923,6 +928,11 @@ const DiagramViewer = forwardRef(({
       setSearchResults(results);
       onSearchResults && onSearchResults(results);
 
+      // Auto-focus first result if search has results
+      if (results.length > 0 && results[0].node) {
+        zoomToNode(results[0].node);
+      }
+
       // For combined editor: dispatch custom event with results
       if (hideSearch) {
         window.dispatchEvent(new CustomEvent('diagramSearchComplete', {
@@ -930,7 +940,7 @@ const DiagramViewer = forwardRef(({
         }));
       }
     }
-  }, [externalSearch, onSearchResults, hideSearch]); // Using searchTermRef.current to avoid re-creation
+  }, [externalSearch, onSearchResults, hideSearch, zoomToNode]);
 
   // Handle external search term changes
   useEffect(() => {
