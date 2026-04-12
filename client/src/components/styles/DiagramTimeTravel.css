@@ -1,22 +1,280 @@
 .diagram-time-travel {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 12px 0 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0 0;
+  width: 100%;
 }
 
-.diagram-time-travel label {
-    font-weight: 500;
-    margin-right: 4px;
+.diagram-time-travel-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #475569;
+  margin-right: 2px;
 }
 
-.diagram-time-travel input[type="range"] {
-    accent-color: #646cff;
-    width: 200px;
-    margin: 0 8px;
+.diagram-time-travel-loading {
+  margin-left: 4px;
 }
 
-.diagram-time-travel span {
-    font-size: 14px;
-    color: #444;
+/* Wrapper: menu positions below trigger */
+.diagram-time-travel-dropdown {
+  position: relative;
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.diagram-time-travel-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 14px;
+  font-size: max(0.9rem, 16px);
+  line-height: 1.25;
+  text-align: left;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  color: #0f172a;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.diagram-time-travel-trigger:hover:not(:disabled) {
+  border-color: #c7d2fe;
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.12);
+}
+
+.diagram-time-travel-trigger:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+.diagram-time-travel-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #f1f5f9;
+}
+
+.diagram-time-travel-trigger--open {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.diagram-time-travel-trigger-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diagram-time-travel-chevron {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+.diagram-time-travel-trigger--open .diagram-time-travel-chevron {
+  transform: rotate(-180deg);
+}
+
+/* Opens downward below trigger */
+.diagram-time-travel-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 1200;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  max-height: min(320px, 45vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow:
+    0 10px 40px rgba(15, 23, 42, 0.12),
+    0 4px 12px rgba(15, 23, 42, 0.08);
+  -webkit-overflow-scrolling: touch;
+}
+
+.diagram-time-travel-menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.diagram-time-travel-menu::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.diagram-time-travel-option {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  margin: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #1e293b;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.diagram-time-travel-option:hover {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.diagram-time-travel-option--selected {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  color: #3730a3;
+  font-weight: 600;
+}
+
+.diagram-time-travel-option:focus {
+  outline: none;
+  background: #e0e7ff;
+}
+
+/* Desktop: single row with nav buttons */
+.diagram-time-travel--inline {
+  margin: 0;
+  width: auto;
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: min(520px, 52vw);
+  flex-wrap: nowrap;
+}
+
+.diagram-time-travel--inline .diagram-time-travel-label {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.diagram-time-travel--inline .diagram-time-travel-dropdown {
+  flex: 1 1 160px;
+  min-width: 140px;
+  max-width: none;
+}
+
+/* Drawer variant */
+.diagram-time-travel--drawer {
+  margin: 0;
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 14px 0 4px;
+  margin-top: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.diagram-time-travel--drawer .diagram-time-travel-dropdown {
+  flex: none;
+  width: 100%;
+  max-width: none;
+}
+
+[data-theme="dark"] .diagram-time-travel--drawer {
+  border-top-color: #45475a;
+}
+
+/* Dark theme */
+[data-theme="dark"] .diagram-time-travel-label {
+  color: #a6adc8;
+}
+
+[data-theme="dark"] .diagram-time-travel-trigger {
+  border-color: #45475a;
+  background: linear-gradient(180deg, #313244 0%, #1e1e2e 100%);
+  color: #cdd6f4;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .diagram-time-travel-trigger:hover:not(:disabled) {
+  border-color: #585b70;
+  background: linear-gradient(180deg, #3d3f58 0%, #252536 100%);
+}
+
+[data-theme="dark"] .diagram-time-travel-trigger:focus,
+[data-theme="dark"] .diagram-time-travel-trigger--open {
+  border-color: #89b4fa;
+  box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.25);
+}
+
+[data-theme="dark"] .diagram-time-travel-trigger:disabled {
+  background: #181825;
+}
+
+[data-theme="dark"] .diagram-time-travel-chevron {
+  color: #a6adc8;
+}
+
+[data-theme="dark"] .diagram-time-travel-menu {
+  border-color: #45475a;
+  background: #1e1e2e;
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 45),
+    0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .diagram-time-travel-menu::-webkit-scrollbar-thumb {
+  background: #585b70;
+}
+
+[data-theme="dark"] .diagram-time-travel-option {
+  color: #cdd6f4;
+}
+
+[data-theme="dark"] .diagram-time-travel-option:hover {
+  background: #313244;
+  color: #89b4fa;
+}
+
+[data-theme="dark"] .diagram-time-travel-option--selected {
+  background: linear-gradient(135deg, #313244 0%, #3d3f58 100%);
+  color: #cba6f7;
+}
+
+[data-theme="dark"] .diagram-time-travel-option:focus {
+  background: #45475a;
+}
+
+@media (max-width: 768px) {
+  .diagram-time-travel:not(.diagram-time-travel--inline) .diagram-time-travel-label {
+    flex: 1 1 100%;
+  }
+
+  /* Use full chrome width on phone — 52vw was too narrow for version labels */
+  .diagram-time-travel--inline {
+    flex: 1 1 100%;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .diagram-time-travel--inline .diagram-time-travel-dropdown {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .diagram-time-travel--inline .diagram-time-travel-menu {
+    left: 0;
+    right: 0;
+    min-width: min(100%, calc(100vw - 28px));
+  }
 }

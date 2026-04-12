@@ -24,6 +24,11 @@
   overflow: hidden;
 }
 
+/* Allow fixed mobile nav overlay/drawer to paint above content (same idea as Diagram page) */
+.simple-combined-editor.editor-mobile-nav-open {
+  overflow: visible !important;
+}
+
 /* Simple Header — follows EditorPage pattern */
 .simple-header {
   padding: 30px;
@@ -108,6 +113,10 @@
   border-bottom: 1px solid #fecaca;
   color: #dc2626;
   padding: 0.75rem 1.5rem;
+  flex-shrink: 0;
+}
+
+.simple-combined-editor > .presence-bar {
   flex-shrink: 0;
 }
 
@@ -686,15 +695,26 @@
 
 /* Responsive — mobile */
 @media (max-width: 768px) {
-  .simple-header {
-    padding: 60px 20px 30px 20px;
+  /* Compact bar + safe area; sticky header stays at top while content scrolls */
+  .simple-combined-editor > .simple-header {
+    padding: 10px 14px 12px !important;
+    padding-top: max(10px, env(safe-area-inset-top, 0px)) !important;
   }
 
-  /* Override main container for mobile to allow scrolling */
+  /* Single scroll surface below chrome so the navbar (sticky) does not scroll away */
   .simple-combined-editor {
-    height: auto !important;
-    min-height: 100vh;
-    overflow-y: auto !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    min-height: 0;
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow: hidden !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .simple-combined-editor > .error-banner {
+    flex-shrink: 0;
   }
 
   .resizer {
@@ -708,34 +728,46 @@
   }
 
   .split-container {
+    flex: 1;
+    min-height: 0;
     flex-direction: column;
+    overflow-x: hidden;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
 
-  .left-panel {
+  /* Each column gets a full “screen” of the scrollport — not half-height flex split */
+  .split-container .left-panel {
     width: 100% !important;
-    height: 100vh !important;
-    min-height: 100vh;
-    overflow-y: auto;
+    flex: 0 0 auto;
+    min-height: 100%;
+    height: auto !important;
+    max-height: none;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     position: relative;
     z-index: 1;
   }
 
-  .right-panel {
+  .split-container .right-panel {
     width: 100% !important;
-    height: 100vh !important;
-    min-height: 100vh;
+    flex: 0 0 auto;
+    min-height: 100%;
+    height: auto !important;
+    max-height: none;
     border-top: 1px solid #e2e8f0;
-    overflow-y: auto;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
   }
 
-  .right-panel-container {
+  .split-container .right-panel-container {
     flex-direction: column;
     flex: 1;
+    display: flex;
+    min-height: 0;
     height: 100%;
   }
 
@@ -753,10 +785,11 @@
     height: auto;
   }
 
-  .diagram-area {
-    flex: 1 !important;
+  .split-container .diagram-area {
+    flex: 1 1 auto !important;
+    min-height: 0;
     margin-left: 0 !important;
-    height: calc(100% - 60px);
+    height: auto !important;
     overflow: hidden;
   }
 
@@ -765,6 +798,58 @@
   .left-panel .monaco-editor {
     height: 100% !important;
     flex: 1;
+  }
+}
+
+/* Floating scroll-to-top (mobile combined — visibility controlled in JS; hidden on desktop) */
+@media (min-width: 769px) {
+  .combined-scroll-top-fab {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .combined-scroll-top-fab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    top: calc(env(safe-area-inset-top, 0px) + 120px);
+    bottom: auto;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    font-size: 1.25rem;
+    line-height: 1;
+    box-shadow: 0 4px 18px rgba(102, 126, 234, 0.45);
+    cursor: pointer;
+    z-index: 650;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .combined-scroll-top-fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 22px rgba(102, 126, 234, 0.5);
+  }
+
+  .combined-scroll-top-fab:active {
+    transform: translateY(0);
+  }
+
+  .combined-scroll-top-fab:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.45);
+  }
+
+  [data-theme="dark"] .combined-scroll-top-fab {
+    background: linear-gradient(135deg, #89b4fa 0%, #cba6f7 100%);
+    color: #1e1e2e;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
   }
 }
 

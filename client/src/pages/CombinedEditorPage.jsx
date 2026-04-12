@@ -45,8 +45,14 @@ export default function CombinedEditorPage({
   const previousAuthState = useRef(isAuthenticated);
   const yamlFileInputRef = useRef(null);
   const jsonFileInputRef = useRef(null);
+  const splitContainerRef = useRef(null);
+  const leftPanelRef = useRef(null);
   const [openMenu, setOpenMenu] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showMobileScrollTopFab, setShowMobileScrollTopFab] = useState(false);
+  const [viewportIsMobile, setViewportIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 768px)").matches : false
+  );
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -225,6 +231,33 @@ export default function CombinedEditorPage({
   }, [isAuthenticated, currentFileId, navigate]);
 
   useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const apply = () => setViewportIsMobile(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  useEffect(() => {
     const handleSearchComplete = (event) => {
       const { results, currentIndex } = event.detail;
       setSearchResults(results);
@@ -397,9 +430,51 @@ export default function CombinedEditorPage({
   // Determine if user has no access to this file
   const hasNoAccess = !!(fileError && fileError.includes('Access denied')) || collabAccessDenied;
 
+  const updateMobileScrollTopFab = useCallback(() => {
+    const split = splitContainerRef.current;
+    const left = leftPanelRef.current;
+    if (!split || !left) {
+      setShowMobileScrollTopFab(false);
+      return;
+    }
+    if (!viewportIsMobile) {
+      setShowMobileScrollTopFab(false);
+      return;
+    }
+    const h = left.offsetHeight;
+    if (h <= 0) {
+      setShowMobileScrollTopFab(false);
+      return;
+    }
+    const threshold = Math.max(24, h - 12);
+    setShowMobileScrollTopFab(split.scrollTop >= threshold);
+  }, [viewportIsMobile]);
+
+  useEffect(() => {
+    if (hasNoAccess) {
+      setShowMobileScrollTopFab(false);
+      return;
+    }
+    const split = splitContainerRef.current;
+    if (!split) return;
+    updateMobileScrollTopFab();
+    split.addEventListener("scroll", updateMobileScrollTopFab, { passive: true });
+    window.addEventListener("resize", updateMobileScrollTopFab);
+    const ro = new ResizeObserver(() => updateMobileScrollTopFab());
+    ro.observe(split);
+    if (leftPanelRef.current) ro.observe(leftPanelRef.current);
+    return () => {
+      split.removeEventListener("scroll", updateMobileScrollTopFab);
+      window.removeEventListener("resize", updateMobileScrollTopFab);
+      ro.disconnect();
+    };
+  }, [hasNoAccess, updateMobileScrollTopFab, viewportIsMobile, parsedData, yamlText, leftWidth, treeInfo, error, localError]);
+
+  const hideMobileGraphChrome = viewportIsMobile && !showMobileScrollTopFab;
+
   return (
     <div
-      className="simple-combined-editor"
+      className={`simple-combined-editor${mobileMenuOpen ? " editor-mobile-nav-open" : ""}`}
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
       onDragLeave={(e) => { if (e.currentTarget.contains(e.relatedTarget)) return; setIsDragOver(false); }}
       onDrop={handleDrop}
@@ -420,10 +495,19 @@ export default function CombinedEditorPage({
             <span className="header-title">Editor & Visualizer</span>
             {fileData && !fileError && <span className="header-file-tag hide-mobile">📁 {fileData.title}</span>}
             {treeInfo && <span className="header-file-tag hide-mobile">{treeInfo.totalNodes} nodes • {treeInfo.maxDepth + 1} levels</span>}
-            <button className="compact-icon-btn hamburger-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} title="Menu">☰</button>
+            <button
+              type="button"
+              className="diagram-hamburger diagram-mobile-only"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="combined-mobile-nav"
+              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              onClick={() => setMobileMenuOpen((o) => !o)}
+            >
+              <span className="diagram-hamburger-icon" aria-hidden>☰</span>
+            </button>
           </div>
 
-          <div className={`header-center${mobileMenuOpen ? ' mobile-open' : ''}`}>
+          <div className="header-center">
             <div className="menu-group">
               <div className="dropdown-wrapper">
                 <button className="menu-btn" onClick={() => setOpenMenu(openMenu === 'file' ? null : 'file')}>
@@ -449,7 +533,7 @@ export default function CombinedEditorPage({
             </div>
           </div>
 
-          <div className={`header-right${mobileMenuOpen ? ' mobile-open' : ''}`}>
+          <div className="header-right">
             <button className="compact-icon-btn" onClick={toggleDarkMode} title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>{darkMode ? '☀️' : '🌙'}</button>
             <button className="compact-icon-btn" onClick={() => setShowShortcuts(true)} title="Keyboard Shortcuts">⌨️</button>
             {isAuthenticated ? (
@@ -471,6 +555,184 @@ export default function CombinedEditorPage({
         {fileLoading && <div className="header-status">📄 Loading file...</div>}
         {fileError && <div className="header-status header-status-error">❌ {fileError}</div>}
       </div>
+
+      {mobileMenuOpen && (
+        <>
+          <div
+            className="diagram-mobile-overlay"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden
+          />
+          <nav id="combined-mobile-nav" className="diagram-mobile-drawer" aria-label="Combined editor menu">
+            <div className="diagram-mobile-drawer-header">
+              <span>Menu</span>
+              <button
+                type="button"
+                className="diagram-mobile-drawer-close"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="diagram-mobile-drawer-body">
+              <p className="diagram-mobile-drawer-section-title">File</p>
+              {currentFileId && (
+                <button
+                  type="button"
+                  className="diagram-mobile-nav-btn"
+                  onClick={() => {
+                    handleNewFile("/combined");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  📄 New File
+                </button>
+              )}
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  yamlFileInputRef.current?.click();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                📥 Import YAML
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  jsonFileInputRef.current?.click();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                📥 Import JSON → YAML
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  onShowRepositoryImporter();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                📂 Import Repo
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  handleExportYaml();
+                  setMobileMenuOpen(false);
+                }}
+                disabled={!yamlText}
+              >
+                📤 Export YAML
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  handleExportJson();
+                  setMobileMenuOpen(false);
+                }}
+                disabled={!yamlText}
+              >
+                📤 Export as JSON
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  handleSaveGraph();
+                  setMobileMenuOpen(false);
+                }}
+                disabled={!parsedData || !canSaveGraph}
+              >
+                💾 Save
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  setShowSavedGraphs(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                📚 Saved ({savedGraphs.length + (sharedGraphs?.length || 0)})
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  onShowVersionHistory();
+                  setMobileMenuOpen(false);
+                }}
+                disabled={!isAuthenticated}
+              >
+                📜 History
+              </button>
+
+              <p className="diagram-mobile-drawer-section-title">Account</p>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  toggleDarkMode();
+                }}
+              >
+                {darkMode ? "☀️ Light mode" : "🌙 Dark mode"}
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  setShowShortcuts(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                ⌨️ Keyboard shortcuts
+              </button>
+              {isAuthenticated ? (
+                <>
+                  <button
+                    type="button"
+                    className="diagram-mobile-nav-btn"
+                    onClick={() => {
+                      navigate("/profile");
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    👤 {user?.username || "Profile"}
+                  </button>
+                  <button
+                    type="button"
+                    className="diagram-mobile-nav-btn"
+                    onClick={() => {
+                      onLogout();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    🚪 Logout
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="diagram-mobile-nav-btn"
+                  onClick={() => {
+                    onShowAuth();
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  🔐 Login
+                </button>
+              )}
+            </div>
+          </nav>
+        </>
+      )}
 
       {(error || localError) && !hasNoAccess && <div className="error-banner">⚠️ {error || localError}</div>}
 
@@ -516,8 +778,8 @@ export default function CombinedEditorPage({
             />
           )}
 
-          <div className="split-container">
-            <div className="left-panel" style={{ width: `${leftWidth}%` }}>
+          <div ref={splitContainerRef} className="split-container">
+            <div ref={leftPanelRef} className="left-panel" style={{ width: `${leftWidth}%` }}>
               <YamlEditor
                 value={yamlText}
                 onChange={handleYamlChange}
@@ -536,17 +798,19 @@ export default function CombinedEditorPage({
             <div className="right-panel" style={{ width: `${100 - leftWidth}%` }}>
               <div className="right-panel-container">
                 <div className="diagram-area">
-                  <div className="search-panel-container">
-                    <SearchPanel
-                      onSearch={handleSearch}
-                      searchResults={searchResults}
-                      currentIndex={currentSearchIndex}
-                      onNavigate={handleSearchNavigation}
-                    />
-                  </div>
+                  {parsedData && !hideMobileGraphChrome && (
+                    <div className="search-panel-container">
+                      <SearchPanel
+                        onSearch={handleSearch}
+                        searchResults={searchResults}
+                        currentIndex={currentSearchIndex}
+                        onNavigate={handleSearchNavigation}
+                      />
+                    </div>
+                  )}
                   <div className="diagram-content">
                     {parsedData ? (
-                      <DiagramViewer data={parsedData} treeInfo={treeInfo} hideSearch />
+                      <DiagramViewer data={parsedData} treeInfo={treeInfo} hideSearch hideUiChrome={hideMobileGraphChrome} />
                     ) : (
                       <div className="diagram-placeholder">
                         <div className="placeholder-content">
@@ -562,6 +826,19 @@ export default function CombinedEditorPage({
             </div>
           </div>
         </>
+      )}
+
+      {!hasNoAccess && showMobileScrollTopFab && (
+        <button
+          type="button"
+          className="combined-scroll-top-fab"
+          onClick={() => {
+            splitContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          aria-label="Scroll to top"
+        >
+          ↑
+        </button>
       )}
 
       {showShortcuts && (

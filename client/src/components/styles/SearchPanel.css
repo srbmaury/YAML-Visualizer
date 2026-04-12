@@ -327,17 +327,41 @@
 
 @media (max-width: 768px) {
 
-  /* Position search panel at very top with margin on mobile */
-  .search-panel {
+  /*
+   * Diagram page only: must sit below .diagram-page-chrome, not on top of it.
+   * --diagram-chrome-height is set on .diagram-container by DiagramPage (ResizeObserver).
+   * (Combined editor / other parents use their own layout — do not use fixed top offset here.)
+   */
+  .diagram-main .search-panel {
     position: fixed !important;
-    top: 60px !important;
-    left: 15px !important;
-    height: 45px !important;
+    top: calc(env(safe-area-inset-top, 0px) + var(--diagram-chrome-height, 140px) + 8px) !important;
+    left: 12px !important;
+    right: 52px !important;
+    width: auto !important;
+    max-width: none !important;
+    z-index: 180 !important;
   }
 
-  .search-input {
-    height: 45px !important;
+  .diagram-main .search-panel.collapsed {
+    width: auto !important;
+  }
+
+  .diagram-main .search-panel.expanded {
+    width: auto !important;
+    max-height: min(70vh, 520px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .diagram-main .search-toggle {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  .diagram-main .search-input {
+    min-height: 44px;
     padding: 12px 16px !important;
+    font-size: 16px;
   }
 }
 

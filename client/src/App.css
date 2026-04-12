@@ -302,16 +302,7 @@ body {
 }
 
 /* ── Responsive navbar ── */
-.hamburger-btn {
-  display: none;
-}
-
 @media (max-width: 768px) {
-  .hamburger-btn {
-    display: flex;
-    margin-left: auto;
-  }
-
   .header-top-bar {
     flex-wrap: wrap;
     height: auto;
@@ -324,6 +315,10 @@ body {
     flex-shrink: 0;
   }
 
+  .header-left .diagram-hamburger.diagram-mobile-only {
+    margin-left: auto;
+  }
+
   .header-title {
     font-size: 0.85em;
   }
@@ -332,37 +327,11 @@ body {
     display: none !important;
   }
 
+  /* Mobile: primary nav lives in the slide-out drawer (same pattern as Diagram page) */
   .header-center,
   .header-right {
-    display: none;
+    display: none !important;
     width: 100%;
-  }
-
-  .header-center.mobile-open,
-  .header-right.mobile-open {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    padding: 4px 0;
-    border-top: 1px solid #334155;
-  }
-
-  .header-center.mobile-open {
-    border-top: 1px solid #334155;
-  }
-
-  .header-right.mobile-open {
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 0;
-  }
-
-  .header-right.mobile-open .user-name {
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
   }
 
   .menu-group {
@@ -839,6 +808,42 @@ body {
   display: flex;
   flex-direction: column;
   background: #f5f5f0;
+  /* Fallback until JS measures sticky header (mobile search offset) */
+  --diagram-chrome-height: 96px;
+}
+
+/* Allow full-screen drawer above stats row (DiagramViewer sets overflow: hidden on .diagram-container) */
+.diagram-container.diagram-mobile-nav-open {
+  overflow: visible !important;
+}
+
+/* Header block above the diagram (time travel, nav buttons) */
+.diagram-page-chrome {
+  flex-shrink: 0;
+}
+
+/* /diagram only: diagram-first UI like combined view (no nodes/levels/edges strip; no visible title band) */
+.diagram-page--minimal .diagram-page-title {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+@media (min-width: 769px) {
+
+  /* Ensure mobile-only sticky/chrome never applies at desktop widths */
+  .diagram-page-chrome {
+    position: relative;
+    z-index: auto;
+    box-shadow: none;
+  }
 }
 
 [data-theme="dark"] .diagram-container {
@@ -943,10 +948,252 @@ body {
   transform: translateY(-2px);
 }
 
+.diagram-main {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  width: 100%;
+}
+
 .diagram-header h2 {
   flex: 1;
   color: #2c3e50;
   font-size: 1.5em;
+}
+
+.diagram-mobile-only {
+  display: none;
+}
+
+.diagram-hamburger {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #667eea;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  color: #667eea;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.diagram-hamburger-icon {
+  display: block;
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .diagram-hamburger {
+  background: #313244;
+  border-color: #89b4fa;
+  color: #89b4fa;
+}
+
+.diagram-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Desktop: nav buttons + time travel on one row */
+.diagram-header-toolbar {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.diagram-mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 10000;
+  animation: diagram-overlay-fade 0.2s ease;
+}
+
+@keyframes diagram-overlay-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.diagram-mobile-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(100vw - 48px, 300px);
+  max-width: 100%;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+  animation: diagram-drawer-slide 0.22s ease;
+}
+
+@keyframes diagram-drawer-slide {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+[data-theme="dark"] .diagram-mobile-drawer {
+  background: rgba(30, 30, 46, 0.98);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45);
+}
+
+.diagram-mobile-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #2c3e50;
+}
+
+[data-theme="dark"] .diagram-mobile-drawer-header {
+  border-bottom-color: #45475a;
+  color: #cdd6f4;
+}
+
+.diagram-mobile-drawer-close {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.25rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diagram-mobile-drawer-close:hover {
+  background: #f1f5f9;
+}
+
+[data-theme="dark"] .diagram-mobile-drawer-close {
+  color: #a6adc8;
+}
+
+[data-theme="dark"] .diagram-mobile-drawer-close:hover {
+  background: #313244;
+}
+
+.diagram-mobile-drawer-body {
+  padding: 12px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.diagram-mobile-nav-btn {
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.diagram-mobile-nav-btn:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+[data-theme="dark"] .diagram-mobile-nav-btn {
+  background: #181825;
+  border-color: #45475a;
+  color: #cdd6f4;
+}
+
+[data-theme="dark"] .diagram-mobile-nav-btn:hover {
+  background: #313244;
+  border-color: #585b70;
+}
+
+.diagram-mobile-drawer-hint {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #64748b;
+  font-style: italic;
+}
+
+[data-theme="dark"] .diagram-mobile-drawer-hint {
+  color: #a6adc8;
+}
+
+.diagram-mobile-drawer-section-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 14px 0 8px;
+  padding: 0 2px;
+}
+
+.diagram-mobile-drawer-section-title:first-of-type {
+  margin-top: 0;
+}
+
+[data-theme="dark"] .diagram-mobile-drawer-section-title {
+  color: #94a3b8;
+}
+
+.diagram-mobile-nav-btn--primary {
+  border-color: #c7d2fe !important;
+  background: linear-gradient(180deg, #eef2ff 0%, #e0e7ff 100%) !important;
+  color: #3730a3 !important;
+}
+
+[data-theme="dark"] .diagram-mobile-nav-btn--primary {
+  border-color: #585b70 !important;
+  background: linear-gradient(180deg, #313244 0%, #45475a 100%) !important;
+  color: #cba6f7 !important;
+}
+
+.diagram-mobile-nav-btn--active {
+  border-color: #a5b4fc !important;
+  background: #eef2ff !important;
+}
+
+[data-theme="dark"] .diagram-mobile-nav-btn--active {
+  border-color: #89b4fa !important;
+  background: #313244 !important;
+}
+
+.diagram-mobile-nav-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 [data-theme="dark"] .diagram-header h2 {
@@ -1359,16 +1606,54 @@ body {
     width: 100%;
   }
 
-  /* Diagram subheader mobile */
-  .diagram-subheader {
-    padding: 10px 15px;
-    gap: 15px;
+  /* Diagram page: hamburger + compact header */
+  .diagram-desktop-only {
+    display: none !important;
   }
 
-  .tree-info-centered {
-    font-size: 0.85em;
-    padding: 6px 16px;
+  .diagram-mobile-only {
+    display: flex !important;
   }
+
+  .diagram-hamburger {
+    display: flex !important;
+  }
+
+  /* Sticky top bar so title + hamburger stay above fixed diagram overlays (search) */
+  .diagram-page-chrome {
+    position: sticky;
+    top: 0;
+    z-index: 500;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  [data-theme="dark"] .diagram-page-chrome {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  }
+
+  .diagram-header {
+    padding: 12px 14px;
+    gap: 10px;
+    align-items: flex-start;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Time travel + hint share top bar with hamburger */
+  .diagram-header-toolbar {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .diagram-page-hint-mobile {
+    width: 100%;
+    flex-basis: 100%;
+    margin: 2px 0 0;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    padding-top: 2px;
+  }
+
 }
 
 /* Loading and Error States for Shared Viewer */

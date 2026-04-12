@@ -21,6 +21,11 @@
   position: relative;
 }
 
+.embed-diagram .diagram-viewer {
+  top: 0 !important;
+  height: 100% !important;
+}
+
 /* Loading State */
 .embed-loading {
   display: flex;

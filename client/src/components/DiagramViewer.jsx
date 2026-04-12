@@ -20,6 +20,7 @@ const DiagramViewer = forwardRef(({
   treeData,
   externalSearch = false,
   hideSearch = false,
+  hideUiChrome = false,
   embedMode = false,
   onSearchResults,
   onSearchIndexChange,
@@ -34,6 +35,7 @@ const DiagramViewer = forwardRef(({
   const { darkMode: themeDarkMode } = useTheme();
   // Force light mode in embed mode
   const darkMode = embedMode ? false : themeDarkMode;
+  const showFloatingChrome = !embedMode && !hideUiChrome;
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [searchResults, setSearchResults] = useState([]);
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
@@ -1432,32 +1434,6 @@ const DiagramViewer = forwardRef(({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [searchResults, handleNavigate, handleSearch]);
 
-  // Mobile header toggle handler with scroll detection
-  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      // Check if header is hidden (scrolled past it)
-      const scrollY = window.scrollY;
-      const headerHeight = 60; // Approximate header height
-      setIsHeaderHidden(scrollY > headerHeight);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Check initial state
-
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const handleToggleMobileHeader = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Simply scroll to top to show header
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
-
-
   return (
     <div className="diagram-viewer">
       <svg ref={svgRef} className="diagram-svg">
@@ -1483,8 +1459,8 @@ const DiagramViewer = forwardRef(({
         <g ref={gRef}></g>
       </svg>
 
-      {/* Control buttons - hide in embed mode */}
-      {!embedMode && (
+      {/* Control buttons - hide in embed mode or when parent suppresses chrome (e.g. combined mobile on editor) */}
+      {showFloatingChrome && (
         <div className="diagram-controls">
           <button
             className="toggle-all-btn"
@@ -1496,8 +1472,8 @@ const DiagramViewer = forwardRef(({
         </div>
       )}
 
-      {/* Enhanced zoom controls - hide in embed mode */}
-      {!embedMode && (
+      {/* Enhanced zoom controls - hide in embed mode or when parent suppresses chrome */}
+      {showFloatingChrome && (
         <div className="zoom-controls">
           <div className="zoom-controls-group">
             <button
@@ -1559,20 +1535,8 @@ const DiagramViewer = forwardRef(({
         </div>
       )}
 
-      {/* Mobile header toggle button - hide in embed mode */}
-      {!embedMode && (
-        <button
-          className="mobile-header-toggle"
-          onClick={handleToggleMobileHeader}
-          title="Toggle header visibility"
-          style={{ display: isHeaderHidden ? 'flex' : 'none' }}
-        >
-          ⬇️
-        </button>
-      )}
-
-      {/* Node count badge - hide in embed mode */}
-      {!embedMode && (
+      {/* Node count badge - hide in embed mode or when parent suppresses chrome */}
+      {showFloatingChrome && (
         <div className="node-count-badge">
           <span className="node-count-label">Showing</span>
           <span className="node-count-numbers">
@@ -1587,7 +1551,7 @@ const DiagramViewer = forwardRef(({
         </div>
       )}
 
-      {!embedMode && !externalSearch && !hideSearch && (
+      {showFloatingChrome && !externalSearch && !hideSearch && (
         <SearchPanel
           onSearch={handleSearch}
           searchResults={searchResults}
@@ -1596,10 +1560,10 @@ const DiagramViewer = forwardRef(({
         />
       )}
 
-      {!embedMode && <TreeInfoPanel treeInfo={treeInfo} />}
+      {showFloatingChrome && <TreeInfoPanel treeInfo={treeInfo} />}
 
-      {/* Export dialog/modal - hide in embed mode */}
-      {!embedMode && <ExportDialog open={exportDialogOpen} onClose={handleExportDialogClose} onExport={handleExportFormat} />}
+      {/* Export dialog/modal - hide in embed mode or when parent suppresses chrome */}
+      {showFloatingChrome && <ExportDialog open={exportDialogOpen} onClose={handleExportDialogClose} onExport={handleExportFormat} />}
     </div>
   );
 });

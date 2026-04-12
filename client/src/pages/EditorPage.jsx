@@ -191,6 +191,25 @@ export default function EditorPage({
     previousAuthState.current = isAuthenticated;
   }, [isAuthenticated, currentFileId, navigate]);
 
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // Load existing collaborators when the share modal opens
   useEffect(() => {
     if (showShareModal && fileData && getUserId(user) === `${fileData.owner}`) {
@@ -360,7 +379,7 @@ export default function EditorPage({
 
   return (
     <div
-      className="editor-container"
+      className={`editor-container${mobileMenuOpen ? " editor-mobile-nav-open" : ""}`}
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
       onDragLeave={(e) => { if (e.currentTarget.contains(e.relatedTarget)) return; setIsDragOver(false); }}
       onDrop={handleDrop}
@@ -379,10 +398,19 @@ export default function EditorPage({
             <button className="compact-icon-btn" onClick={() => navigate('/')} title="Home">🏠</button>
             <span className="header-title">YAML Visualizer</span>
             {fileData && <span className="header-file-tag hide-mobile">📁 {fileData.title}</span>}
-            <button className="compact-icon-btn hamburger-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} title="Menu">☰</button>
+            <button
+              type="button"
+              className="diagram-hamburger diagram-mobile-only"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="editor-mobile-nav"
+              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              onClick={() => setMobileMenuOpen((o) => !o)}
+            >
+              <span className="diagram-hamburger-icon" aria-hidden>☰</span>
+            </button>
           </div>
 
-          <div className={`header-center${mobileMenuOpen ? ' mobile-open' : ''}`}>
+          <div className="header-center">
             <div className="menu-group">
               <div className="dropdown-wrapper">
                 <button className="menu-btn" onClick={() => setOpenMenu(openMenu === 'file' ? null : 'file')}>
@@ -440,7 +468,7 @@ export default function EditorPage({
             </div>
           </div>
 
-          <div className={`header-right${mobileMenuOpen ? ' mobile-open' : ''}`}>
+          <div className="header-right">
             <button className="compact-icon-btn" onClick={toggleDarkMode} title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>{darkMode ? '☀️' : '🌙'}</button>
             <button className="compact-icon-btn" onClick={() => setShowShortcuts(true)} title="Keyboard Shortcuts">⌨️</button>
             {isAuthenticated ? (
@@ -462,6 +490,252 @@ export default function EditorPage({
         {fileLoading && <div className="header-status">📄 Loading file...</div>}
         {fileError && <div className="header-status header-status-error">❌ {fileError}</div>}
       </div>
+
+      {mobileMenuOpen && (
+        <>
+          <div
+            className="diagram-mobile-overlay"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden
+          />
+          <nav id="editor-mobile-nav" className="diagram-mobile-drawer" aria-label="Editor menu">
+            <div className="diagram-mobile-drawer-header">
+              <span>Menu</span>
+              <button
+                type="button"
+                className="diagram-mobile-drawer-close"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="diagram-mobile-drawer-body">
+              <p className="diagram-mobile-drawer-section-title">File</p>
+              {currentFileId && (
+                <button
+                  type="button"
+                  className="diagram-mobile-nav-btn"
+                  onClick={() => {
+                    handleNewFile("/");
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  📄 New File
+                </button>
+              )}
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  yamlFileInputRef.current?.click();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                📥 Import YAML
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  jsonFileInputRef.current?.click();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                📥 Import JSON → YAML
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  onShowRepositoryImporter();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                📂 Import Repo
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  handleExportYaml();
+                  setMobileMenuOpen(false);
+                }}
+                disabled={!yamlText}
+              >
+                📤 Export YAML
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  handleExportJson();
+                  setMobileMenuOpen(false);
+                }}
+                disabled={!yamlText}
+              >
+                📤 Export as JSON
+              </button>
+              {isAuthenticated && (
+                <>
+                  <button
+                    type="button"
+                    className="diagram-mobile-nav-btn"
+                    onClick={() => {
+                      handleSaveGraph();
+                      setMobileMenuOpen(false);
+                    }}
+                    disabled={!canSaveGraph}
+                  >
+                    💾 Save Graph
+                  </button>
+                  <button
+                    type="button"
+                    className="diagram-mobile-nav-btn"
+                    onClick={() => {
+                      setShowSavedGraphs(true);
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    📚 My Graphs ({savedGraphs.length + (sharedGraphs?.length || 0)})
+                  </button>
+                  <button
+                    type="button"
+                    className="diagram-mobile-nav-btn"
+                    onClick={() => {
+                      onShowVersionHistory();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    📜 Version History
+                  </button>
+                </>
+              )}
+
+              <p className="diagram-mobile-drawer-section-title">View</p>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  if (currentFileId) navigate(`/combined/${currentFileId}`);
+                  else navigate("/combined");
+                  setMobileMenuOpen(false);
+                }}
+              >
+                🔗 Combined View
+              </button>
+              <button
+                type="button"
+                className={`diagram-mobile-nav-btn${showAnalysis ? " diagram-mobile-nav-btn--active" : ""}`}
+                onClick={() => {
+                  setShowAnalysis(!showAnalysis);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                🔍 Analysis
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  navigate("/diff", { state: { yamlContent: yamlText, fileName: fileData?.title || "Current Editor" } });
+                  setMobileMenuOpen(false);
+                }}
+              >
+                🔍 Diff Compare
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  navigate("/docs");
+                  setMobileMenuOpen(false);
+                }}
+              >
+                📖 Docs
+              </button>
+
+              <p className="diagram-mobile-drawer-section-title">Actions</p>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn diagram-mobile-nav-btn--primary"
+                onClick={() => {
+                  handleVisualize(currentFileId);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                🎨 Visualize
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  setShowAiAssistant(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                🤖 AI Assistant
+              </button>
+
+              <p className="diagram-mobile-drawer-section-title">Account</p>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  toggleDarkMode();
+                }}
+              >
+                {darkMode ? "☀️ Light mode" : "🌙 Dark mode"}
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  setShowShortcuts(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                ⌨️ Keyboard shortcuts
+              </button>
+              {isAuthenticated ? (
+                <>
+                  <button
+                    type="button"
+                    className="diagram-mobile-nav-btn"
+                    onClick={() => {
+                      navigate("/profile");
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    👤 {user?.username || "Profile"}
+                  </button>
+                  <button
+                    type="button"
+                    className="diagram-mobile-nav-btn"
+                    onClick={() => {
+                      onLogout();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    🚪 Logout
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="diagram-mobile-nav-btn"
+                  onClick={() => {
+                    onShowAuth();
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  🔐 Login
+                </button>
+              )}
+            </div>
+          </nav>
+        </>
+      )}
 
       <div className="editor-layout">
         <div className="editor-main">

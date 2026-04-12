@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useLayoutEffect, useState, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import DiagramViewer from "../components/DiagramViewer";
 import DiagramTimeTravel from "../components/DiagramTimeTravel";
@@ -31,7 +31,8 @@ export default function DiagramPage({ parsedData: propParsedData, treeInfo: prop
       lastYaml = yamlContent;
       if (yamlContent && yamlContent.trim()) {
         try {
-          setLoading(true);
+          // Do not call setLoading here — it triggers the full-page loading branch and
+          // unmounts DiagramTimeTravel + DiagramViewer, which breaks time travel.
           const yamlData = yaml.load(yamlContent);
           const tree = buildTreeFromYAML(yamlData);
           const hierarchical = convertToD3Hierarchy(tree);
@@ -50,8 +51,6 @@ export default function DiagramPage({ parsedData: propParsedData, treeInfo: prop
           setTreeData(tree);
         } catch (error) {
           console.error("Error processing time travel YAML:", error);
-        } finally {
-          setLoading(false);
         }
       }
     };
@@ -61,6 +60,48 @@ export default function DiagramPage({ parsedData: propParsedData, treeInfo: prop
   const lastGithubSyncMsRef = useRef(null);
   /** Bump so DiagramTimeTravel reloads version list after GitHub sync / remote YAML update. */
   const [versionHistoryRefreshKey, setVersionHistoryRefreshKey] = useState(0);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const diagramContainerRef = useRef(null);
+  const diagramChromeRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const chrome = diagramChromeRef.current;
+    const container = diagramContainerRef.current;
+    if (!chrome || !container) return;
+
+    const syncChromeHeight = () => {
+      const h = Math.ceil(chrome.getBoundingClientRect().height);
+      container.style.setProperty("--diagram-chrome-height", `${h}px`);
+    };
+
+    syncChromeHeight();
+    const ro = new ResizeObserver(syncChromeHeight);
+    ro.observe(chrome);
+    window.addEventListener("resize", syncChromeHeight);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", syncChromeHeight);
+    };
+  }, [treeInfo, currentFileId]);
+
+  useEffect(() => {
+    if (mobileNavOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileNavOpen]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") setMobileNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Use the custom hook to load YAML file by ID if present in URL
   const { loading: fileLoading, error: fileError, fileData } = useYamlFile(setYamlText, isAuthenticated);
@@ -287,67 +328,147 @@ export default function DiagramPage({ parsedData: propParsedData, treeInfo: prop
     );
   }
 
+  const goEditor = () => {
+    if (currentFileId) navigate(`/editor/${currentFileId}`);
+    else navigate("/");
+  };
+  const goCombined = () => {
+    if (currentFileId) navigate(`/combined/${currentFileId}`);
+    else navigate("/combined");
+  };
+
   return (
-    <div className="diagram-container">
+    <div
+      className={`diagram-container diagram-page--minimal${mobileNavOpen ? " diagram-mobile-nav-open" : ""}`}
+      ref={diagramContainerRef}
+    >
+      <div className="diagram-page-chrome" ref={diagramChromeRef}>
       <div className="diagram-header">
-        <button className="back-btn" onClick={() => {
-          if (currentFileId) {
-            navigate(`/editor/${currentFileId}`);
-          } else {
-            navigate("/");
-          }
-        }}>
-          ← Back to Editor
-        </button>
-        <button className="combined-btn" onClick={() => {
-          if (currentFileId) {
-            navigate(`/combined/${currentFileId}`);
-          } else {
-            navigate("/combined");
-          }
-        }}>
-          🔗 Combined View
-        </button>
         <button
-          className="back-btn"
-          onClick={toggleDarkMode}
-          title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          type="button"
+          className="diagram-hamburger diagram-mobile-only"
+          aria-expanded={mobileNavOpen}
+          aria-controls="diagram-mobile-nav"
+          aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+          onClick={() => setMobileNavOpen((open) => !open)}
         >
-          {darkMode ? '☀️' : '🌙'}
+          <span className="diagram-hamburger-icon" aria-hidden>☰</span>
         </button>
-        {currentFileId && isAuthenticated && (
-          <button
-            className="back-btn"
-            onClick={() => setShowGitHubModal(true)}
-            title="GitHub Integration"
-          >
-            🐙 GitHub Sync
-          </button>
-        )}
-        <h2>Interactive Diagram View</h2>
-        <div className="hint">
+
+        <div className="diagram-header-toolbar">
+          <div className="diagram-header-actions diagram-desktop-only">
+            <button className="back-btn" onClick={goEditor}>
+              ← Back to Editor
+            </button>
+            <button className="combined-btn" onClick={goCombined}>
+              🔗 Combined View
+            </button>
+            <button
+              className="back-btn"
+              onClick={toggleDarkMode}
+              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {darkMode ? "☀️" : "🌙"}
+            </button>
+            {currentFileId && isAuthenticated && (
+              <button
+                className="back-btn"
+                onClick={() => setShowGitHubModal(true)}
+                title="GitHub Integration"
+              >
+                🐙 GitHub Sync
+              </button>
+            )}
+          </div>
+          {currentFileId && (
+            <DiagramTimeTravel
+              fileId={currentFileId}
+              onVersionChange={handleTimeTravel}
+              refreshKey={versionHistoryRefreshKey}
+              variant="inline"
+            />
+          )}
+        </div>
+        <h2 className="diagram-page-title">Interactive Diagram View</h2>
+        <div className="hint diagram-desktop-only diagram-page-hint">
           💡 Scroll to zoom • Drag to pan • Click nodes to expand/collapse
         </div>
-        {/* Time Travel Timeline */}
-        {currentFileId && (
-          <DiagramTimeTravel
-            fileId={currentFileId}
-            onVersionChange={handleTimeTravel}
-            refreshKey={versionHistoryRefreshKey}
-          />
-        )}
+        <div className="hint diagram-mobile-only diagram-page-hint diagram-page-hint-mobile">
+          💡 Scroll to zoom • Drag to pan • Tap nodes to expand/collapse
+        </div>
+      </div>
       </div>
 
-      {/* Second row: Tree Info only */}
-      {treeInfo && (
-        <div className="diagram-subheader">
-          <div className="tree-info-centered">
-            📊 Nodes: {treeInfo.totalNodes} | Levels: {treeInfo.maxDepth + 1} | Edges: {treeInfo.totalEdges}
-          </div>
-        </div>
-      )}
+      <div className="diagram-main">
+        <DiagramViewer data={parsedData} treeInfo={treeInfo} treeData={treeData} />
+      </div>
 
-      <DiagramViewer data={parsedData} treeInfo={treeInfo} treeData={treeData} />
+      {/* After page chrome in DOM so overlay/drawer paint above diagram-main (z-order) */}
+      {mobileNavOpen && (
+        <>
+          <div
+            className="diagram-mobile-overlay"
+            onClick={() => setMobileNavOpen(false)}
+            aria-hidden
+          />
+          <nav id="diagram-mobile-nav" className="diagram-mobile-drawer">
+            <div className="diagram-mobile-drawer-header">
+              <span>Menu</span>
+              <button
+                type="button"
+                className="diagram-mobile-drawer-close"
+                onClick={() => setMobileNavOpen(false)}
+                aria-label="Close menu"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="diagram-mobile-drawer-body">
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  goEditor();
+                  setMobileNavOpen(false);
+                }}
+              >
+                ← Back to Editor
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  goCombined();
+                  setMobileNavOpen(false);
+                }}
+              >
+                🔗 Combined View
+              </button>
+              <button
+                type="button"
+                className="diagram-mobile-nav-btn"
+                onClick={() => {
+                  toggleDarkMode();
+                }}
+              >
+                {darkMode ? "☀️ Light mode" : "🌙 Dark mode"}
+              </button>
+              {currentFileId && isAuthenticated && (
+                <button
+                  type="button"
+                  className="diagram-mobile-nav-btn"
+                  onClick={() => {
+                    setShowGitHubModal(true);
+                    setMobileNavOpen(false);
+                  }}
+                >
+                  🐙 GitHub Sync
+                </button>
+              )}
+            </div>
+          </nav>
+        </>
+      )}
 
       {/* GitHub Integration Modal */}
       {currentFileId && (

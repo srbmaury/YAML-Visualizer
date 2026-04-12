@@ -297,3 +297,27 @@
 [data-theme="dark"] .panel-content::-webkit-scrollbar-thumb:hover {
   background: #d4b8fa;
 }
+
+@media (max-width: 768px) {
+  /* Narrow strip + drawer: align with measured page chrome (DiagramPage sets --diagram-chrome-height) */
+  .tree-info-panel {
+    top: calc(env(safe-area-inset-top, 0px) + var(--diagram-chrome-height, 140px) + 8px);
+    bottom: calc(200px + env(safe-area-inset-bottom, 0px));
+    max-height: none;
+    z-index: 210;
+  }
+
+  .tree-info-panel.collapsed {
+    max-height: min(40vh, 280px);
+  }
+
+  .tree-info-panel.expanded {
+    width: min(100vw - 16px, 320px);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.2);
+  }
+
+  .panel-toggle {
+    touch-action: manipulation;
+    min-height: 44px;
+  }
+}
