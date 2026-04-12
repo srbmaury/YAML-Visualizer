@@ -68,7 +68,7 @@ function shouldSkipImportDirectory(dirName, depth) {
   return false;
 }
 
-function filterLargeDirectory(contents, depth) {
+function filterLargeDirectory(contents) {
   const priorityPatterns = [
     /^(readme|license|changelog|contributing|package\.json|tsconfig|webpack|vite|next|nuxt)(\.|$)/i,
     /^(src|lib|app|pages|components|utils|hooks|api|server|client)$/i,
@@ -97,12 +97,14 @@ function filterLargeDirectory(contents, depth) {
     }
   });
 
-  const maxItems = depth === 0 ? 30 : depth === 1 ? 25 : 20;
+  // Only filter if directory is very large (>150 items)
+  // Otherwise return all items prioritized
+  const maxItems = 150;
 
   return [
     ...highPriority,
-    ...normalPriority.slice(0, Math.max(0, maxItems - highPriority.length - 3)),
-    ...lowPriority.slice(0, 3),
+    ...normalPriority.slice(0, Math.max(0, maxItems - highPriority.length - 5)),
+    ...lowPriority.slice(0, 5),
   ].slice(0, maxItems);
 }
 
@@ -191,15 +193,15 @@ function encodePathForContents(path) {
     .join('/');
 }
 
-function getItemLimit(depth, totalItems, stats, maxTotalNodes) {
-  const progressiveFactor = Math.max(0.5, 1 - stats.nodes / maxTotalNodes);
-  let baseLimit;
-  if (depth === 0) baseLimit = 25;
-  else if (depth === 1) baseLimit = 20;
-  else if (depth === 2) baseLimit = 15;
-  else baseLimit = 10;
-  const adjustedLimit = Math.max(5, Math.floor(baseLimit * progressiveFactor));
-  return Math.min(totalItems, adjustedLimit);
+function getItemLimit(totalItems, stats, maxTotalNodes) {
+  // Progressive backpressure: as we approach maxTotalNodes, reduce items per directory
+  const progressiveFactor = Math.max(0.3, 1 - stats.nodes / maxTotalNodes);
+
+  // Much more generous base limits - let overall limits (maxTotalNodes, maxApiCalls) do the real work
+  const baseLimit = 100;
+
+  const adjustedLimit = Math.floor(baseLimit * progressiveFactor);
+  return Math.min(totalItems, Math.max(20, adjustedLimit));
 }
 
 async function walkContents(owner, repo, ref, path, maxDepth, currentDepth, stats, limits, repoName) {
@@ -234,8 +236,8 @@ async function walkContents(owner, repo, ref, path, maxDepth, currentDepth, stat
     }
 
     let contents = [...data];
-    if (contents.length > 100) {
-      contents.splice(0, contents.length, ...filterLargeDirectory(contents, currentDepth));
+    if (contents.length > 150) {
+      contents.splice(0, contents.length, ...filterLargeDirectory(contents));
     }
 
     contents.sort((a, b) => {
@@ -247,7 +249,7 @@ async function walkContents(owner, repo, ref, path, maxDepth, currentDepth, stat
 
     const itemsToProcess = contents.slice(
       0,
-      getItemLimit(currentDepth, contents.length, stats, limits.maxTotalNodes)
+      getItemLimit(contents.length, stats, limits.maxTotalNodes)
     );
 
     const tree = {
@@ -317,18 +319,18 @@ async function walkContents(owner, repo, ref, path, maxDepth, currentDepth, stat
  * @param {string} ref - branch name, tag, or commit SHA (GitHub `?ref=`).
  */
 export async function fetchRepositoryTreeImportStyle(owner, repo, ref, { repoSizeKB = 0 } = {}) {
-  let maxDepth = 4;
-  let maxTotalNodes = 500;
-  let maxApiCalls = 50;
-  const timeoutMs = 30000;
+  let maxDepth = 5;
+  let maxTotalNodes = 800;
+  let maxApiCalls = 80;
+  const timeoutMs = 45000;
 
   if (repoSizeKB > 50000) {
-    maxDepth = 3;
-    maxTotalNodes = 300;
-    maxApiCalls = 30;
+    maxDepth = 4;
+    maxTotalNodes = 500;
+    maxApiCalls = 50;
   } else if (repoSizeKB > 20000) {
-    maxTotalNodes = 400;
-    maxApiCalls = 40;
+    maxTotalNodes = 600;
+    maxApiCalls = 60;
   }
 
   const stats = { nodes: 0, apiCalls: 0, startTime: Date.now() };
