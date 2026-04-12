@@ -5,6 +5,13 @@ import SearchPanel from "./SearchPanel";
 import { exportDiagramAsPNG, exportDiagramAsSVG } from "../utils/diagramExport";
 import ExportDialog from "./ExportDialog";
 import { useTheme } from "../hooks/useTheme";
+import {
+  getVisibleNodes,
+  NodeDimensionCache,
+  PerformanceMonitor,
+  getOnlyExpandedNodes,
+  ProgressiveLayoutManager
+} from "../utils/diagramPerformance";
 import "./styles/DiagramViewer.css";
 
 const DiagramViewer = forwardRef(({
@@ -31,6 +38,17 @@ const DiagramViewer = forwardRef(({
   const [searchResults, setSearchResults] = useState([]);
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Performance optimization state
+  const [useVirtualRendering, setUseVirtualRendering] = useState(false);
+  const [currentTransform, setCurrentTransform] = useState(null);
+  const [isProgressiveLoading, setIsProgressiveLoading] = useState(false);
+  const [progressiveLevel, setProgressiveLevel] = useState(0);
+
+  // Performance optimization refs
+  const dimensionCache = useRef(new NodeDimensionCache());
+  const perfMonitor = useRef(new PerformanceMonitor());
+  const progressiveManager = useRef(null);
 
   // Use external search state if provided, otherwise use internal state
   const activeSearchResults = searchResults; // Always use the internal searchResults which gets populated by handleSearch
@@ -182,6 +200,40 @@ const DiagramViewer = forwardRef(({
 
     rootRef.current = root;
 
+    // Detect if we need progressive loading for large diagrams
+    const totalNodeCount = getAllNodesCount(root);
+    const shouldUseProgressiveLoading = totalNodeCount > 1000;
+
+    if (shouldUseProgressiveLoading && !progressiveManager.current) {
+      // Initialize progressive loading manager
+      progressiveManager.current = new ProgressiveLayoutManager(root, (updatedRoot, level) => {
+        setProgressiveLevel(level);
+        update(updatedRoot);
+      });
+
+      // Start with root + level 1 for large diagrams
+      setIsProgressiveLoading(true);
+
+      // Collapse all except root initially
+      const collapseExceptRoot = (node, depth = 0) => {
+        if (depth > 1 && node.children) {
+          node._children = node.children;
+          node.children = null;
+        }
+        if (node.children) {
+          node.children.forEach(child => collapseExceptRoot(child, depth + 1));
+        }
+      };
+      collapseExceptRoot(root);
+
+      // Progressive load in background
+      setTimeout(() => {
+        progressiveManager.current?.loadProgressively(2, 3).then(() => {
+          setIsProgressiveLoading(false);
+        });
+      }, 500);
+    }
+
     // Calculate intelligent vertical spacing based on all nodes
     function calculateOptimalSpacing(root) {
       const levelStats = new Map();
@@ -291,11 +343,13 @@ const DiagramViewer = forwardRef(({
     // Initial render
     update(root);
 
-    // Setup zoom behavior
+    // Setup zoom behavior with transform tracking
     const zoom = d3.zoom()
       .scaleExtent([0.1, 3])
       .on("zoom", (event) => {
         g.attr("transform", event.transform);
+        // Track current transform for viewport culling
+        setCurrentTransform(event.transform);
       });
 
     svg.call(zoom);
@@ -325,11 +379,26 @@ const DiagramViewer = forwardRef(({
     }
 
     function update(source) {
+      const startTime = performance.now();
       const duration = 300;
 
       // Compute the new tree layout
       let nodes = root.descendants();
       const links = root.links();
+
+      // Performance optimization: Only render expanded nodes (lazy expansion)
+      // This ensures collapsed children aren't rendered at all
+      const expandedOnlyNodes = getOnlyExpandedNodes(root);
+      const shouldOptimize = expandedOnlyNodes.length > 500;
+
+      // Use optimized node list if we have many nodes
+      if (shouldOptimize && useVirtualRendering && currentTransform) {
+        // Virtual rendering: only render nodes in viewport
+        nodes = getVisibleNodes(expandedOnlyNodes, currentTransform, dimensions.width, dimensions.height);
+      } else if (shouldOptimize) {
+        // At minimum, don't render collapsed children
+        nodes = expandedOnlyNodes;
+      }
 
       // Update node count (visible vs total)
       const totalNodes = getAllNodesCount(root);
@@ -361,33 +430,40 @@ const DiagramViewer = forwardRef(({
         .attr("transform", () => `translate(${source.y0 || 0},${source.x0 || 0})`)
         .style("opacity", 0);
 
-      // Draw node boxes
+      // Draw node boxes with memoized dimensions
       nodeEnter.each(function (d) {
         const nodeGroup = d3.select(this);
         const properties = d.data.properties || {};
         const propEntries = Object.entries(properties);
 
-        // Calculate box dimensions
+        // Calculate box dimensions using cache for performance
         const nodeName = d.data.name || "node";
 
-        // Format and calculate max length
-        const maxPropLength = Math.max(
-          nodeName.length * 1.2, // Node name is bold, so slightly longer
-          ...propEntries.map(([k, v]) => {
-            let displayValue;
-            if (typeof v === "object" && v !== null) {
-              displayValue = JSON.stringify(v);
-            } else if (v === null || v === undefined) {
-              displayValue = "null";
-            } else {
-              displayValue = String(v);
-            }
-            return `${k}: ${displayValue}`.length;
-          })
-        );
-
-        const boxWidth = Math.max(220, Math.min(maxPropLength * 8 + 40, 500));
-        const boxHeight = Math.max(70, 50 + propEntries.length * 24); // Increased with bottom padding
+        // Use dimension cache for large diagrams
+        let boxWidth, boxHeight;
+        if (nodes.length > 500) {
+          const cachedDims = dimensionCache.current.getDimensions(nodeName, properties);
+          boxWidth = cachedDims.width;
+          boxHeight = cachedDims.height;
+        } else {
+          // Fallback to original calculation for small diagrams
+          const maxPropLength = Math.max(
+            nodeName.length * 1.2,
+            ...propEntries.map(([k, v]) => {
+              let displayValue;
+              if (typeof v === "object" && v !== null) {
+                displayValue = JSON.stringify(v);
+              } else if (v === null || v === undefined) {
+                displayValue = "null";
+              } else {
+                displayValue = String(v);
+              }
+              return `${k}: ${displayValue}`.length;
+            })
+          );
+          boxWidth = Math.max(220, Math.min(maxPropLength * 8 + 40, 500));
+          boxHeight = Math.max(70, 50 + propEntries.length * 24);
+        }
 
         // Store dimensions for link calculations
         d.boxWidth = boxWidth;
@@ -422,88 +498,24 @@ const DiagramViewer = forwardRef(({
         }
 
         // Draw properties with copy icons
-        propEntries.forEach(([key, value], i) => {
-          // Format value properly
-          let displayValue;
-          if (typeof value === "object" && value !== null) {
-            displayValue = JSON.stringify(value);
-          } else if (value === null || value === undefined) {
-            displayValue = "null";
-          } else {
-            displayValue = String(value);
-          }
+        // Use RAF-based batch rendering for nodes with many properties
+        const shouldBatchRender = nodes.length > 500 && propEntries.length > 10;
 
-          // Create a foreignObject to hold HTML content (for copy button)
-          const propFO = nodeGroup.append("foreignObject")
-            .attr("x", -boxWidth / 2 + 10)
-            .attr("y", 26 + i * 24)
-            .attr("width", boxWidth - 20)
-            .attr("height", 24)
-            .style("pointer-events", "none"); // Allow clicks to pass through
-
-          const propDiv = propFO.append("xhtml:div")
-            .attr("xmlns", "http://www.w3.org/1999/xhtml")
-            .style("display", "flex")
-            .style("align-items", "center")
-            .style("justify-content", "space-between")
-            .style("height", "100%")
-            .style("font-size", "12px")
-            .style("font-family", "'Monaco', 'Menlo', monospace")
-            .style("pointer-events", "none"); // Allow clicks to pass through
-
-          // Property text
-          const propText = propDiv.append("xhtml:span")
-            .style("overflow", "hidden")
-            .style("text-overflow", "ellipsis")
-            .style("white-space", "nowrap")
-            .style("flex", "1")
-            .style("pointer-events", "none"); // Allow clicks to pass through
-
-          propText.append("xhtml:span")
-            .attr("class", "diagram-prop-key")
-            .style("font-weight", "600")
-            .style("pointer-events", "none") // Allow clicks to pass through
-            .text(`${key}: `);
-
-          propText.append("xhtml:span")
-            .attr("class", "diagram-prop-val")
-            .style("pointer-events", "none") // Allow clicks to pass through
-            .text(displayValue)
-            .attr("title", displayValue.length > 30 ? displayValue : null);
-
-          // Copy button
-          const copyBtn = propDiv.append("xhtml:button")
-            .attr("class", "svg-copy-btn")
-            .style("background", "transparent")
-            .style("border", "none")
-            .style("cursor", "pointer")
-            .style("font-size", "12px")
-            .style("padding", "2px 4px")
-            .style("opacity", "0.5")
-            .style("transition", "opacity 0.2s, transform 0.2s")
-            .style("pointer-events", "auto") // Only button captures clicks
-            .attr("title", "Copy value")
-            .on("click", function (event) {
-              event.stopPropagation();
-              copyToClipboard(value, d.id, key);
-            })
-            .on("mouseenter", function () {
-              d3.select(this).style("opacity", "1").style("transform", "scale(1.1)");
-            })
-            .on("mouseleave", function () {
-              d3.select(this).style("opacity", "0.5").style("transform", "scale(1)");
+        if (shouldBatchRender) {
+          // Render properties in batches using RAF
+          requestAnimationFrame(() => {
+            propEntries.forEach(([key, value], i) => {
+              renderProperty(nodeGroup, key, value, i, boxWidth, d);
             });
+          });
+        } else {
+          // Standard rendering for small diagrams
+          propEntries.forEach(([key, value], i) => {
+            renderProperty(nodeGroup, key, value, i, boxWidth, d);
+          });
+        }
 
-          // Update button icon based on copied state
-          const updateCopyIcon = () => {
-            const isCopied = copiedProperty === `${d.id}-${key}`;
-            copyBtn.text(isCopied ? "✓" : "📋");
-          };
-
-          updateCopyIcon();
-        });
-
-        // Draw expand/collapse icon
+        // Draw expand/collapse icon (inside nodeEnter.each scope)
         if (d._children || d.children) {
           const iconGroup = nodeGroup.append("g")
             .attr("class", "expand-icon")
@@ -522,9 +534,91 @@ const DiagramViewer = forwardRef(({
             .attr("dy", 1)
             .style("font-size", "20px")
             .style("font-weight", "bold")
-            .text(d.children ? "−" : "+");  // − when expanded, + when collapsed
+            .text(d.children ? "−" : "+");
         }
       });
+
+      // Helper function to render a single property
+      function renderProperty(nodeGroup, key, value, index, boxWidth, nodeData) {
+        // Format value properly
+        let displayValue;
+        if (typeof value === "object" && value !== null) {
+          displayValue = JSON.stringify(value);
+        } else if (value === null || value === undefined) {
+          displayValue = "null";
+        } else {
+          displayValue = String(value);
+        }
+
+        // Create a foreignObject to hold HTML content (for copy button)
+        const propFO = nodeGroup.append("foreignObject")
+          .attr("x", -boxWidth / 2 + 10)
+          .attr("y", 26 + index * 24)
+          .attr("width", boxWidth - 20)
+          .attr("height", 24)
+          .style("pointer-events", "none");
+
+        const propDiv = propFO.append("xhtml:div")
+          .attr("xmlns", "http://www.w3.org/1999/xhtml")
+          .style("display", "flex")
+          .style("align-items", "center")
+          .style("justify-content", "space-between")
+          .style("height", "100%")
+          .style("font-size", "12px")
+          .style("font-family", "'Monaco', 'Menlo', monospace")
+          .style("pointer-events", "none");
+
+        // Property text
+        const propText = propDiv.append("xhtml:span")
+          .style("overflow", "hidden")
+          .style("text-overflow", "ellipsis")
+          .style("white-space", "nowrap")
+          .style("flex", "1")
+          .style("pointer-events", "none");
+
+        propText.append("xhtml:span")
+          .attr("class", "diagram-prop-key")
+          .style("font-weight", "600")
+          .style("pointer-events", "none")
+          .text(`${key}: `);
+
+        propText.append("xhtml:span")
+          .attr("class", "diagram-prop-val")
+          .style("pointer-events", "none")
+          .text(displayValue)
+          .attr("title", displayValue.length > 30 ? displayValue : null);
+
+        // Copy button
+        const copyBtn = propDiv.append("xhtml:button")
+          .attr("class", "svg-copy-btn")
+          .style("background", "transparent")
+          .style("border", "none")
+          .style("cursor", "pointer")
+          .style("font-size", "12px")
+          .style("padding", "2px 4px")
+          .style("opacity", "0.5")
+          .style("transition", "opacity 0.2s, transform 0.2s")
+          .style("pointer-events", "auto")
+          .attr("title", "Copy value")
+          .on("click", function (event) {
+            event.stopPropagation();
+            copyToClipboard(value, nodeData.id, key);
+          })
+          .on("mouseenter", function () {
+            d3.select(this).style("opacity", "1").style("transform", "scale(1.1)");
+          })
+          .on("mouseleave", function () {
+            d3.select(this).style("opacity", "0.5").style("transform", "scale(1)");
+          });
+
+        // Update button icon based on copied state
+        const updateCopyIcon = () => {
+          const isCopied = copiedProperty === `${nodeData.id}-${key}`;
+          copyBtn.text(isCopied ? "✓" : "📋");
+        };
+
+        updateCopyIcon();
+      }
 
       // Transition nodes to their new position
       const nodeUpdate = nodeEnter.merge(node);
@@ -671,6 +765,17 @@ const DiagramViewer = forwardRef(({
         d.x0 = d.x;
         d.y0 = d.y;
       });
+
+      // Record render time for performance monitoring
+      const renderTime = performance.now() - startTime;
+      perfMonitor.current.recordRenderTime(renderTime);
+
+      // Auto-enable optimizations if performance degrades
+      const totalNodeCount = getAllNodesCount(root);
+      if (!useVirtualRendering && perfMonitor.current.shouldEnableVirtualRendering(totalNodeCount)) {
+        console.log(`Enabling virtual rendering (${totalNodeCount} nodes, avg render time: ${perfMonitor.current.getAverageRenderTime().toFixed(2)}ms)`);
+        setUseVirtualRendering(true);
+      }
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -809,8 +914,76 @@ const DiagramViewer = forwardRef(({
       .call(zoomBehaviorRef.current?.zoom.transform || d3.zoom().transform, transform);
   }, [dimensions.width, dimensions.height]);
 
-  // Search functionality
-  const handleSearch = useCallback((term) => {
+  // Helper function to check if node is currently visible
+  const isNodeVisible = useCallback((node) => {
+    // Walk up the tree - if any ancestor is collapsed, this node is hidden
+    let current = node.parent;
+    while (current) {
+      // If parent has _children but no children, it's collapsed
+      if (current._children && !current.children) {
+        return false;
+      }
+      current = current.parent;
+    }
+    return true;
+  }, []);
+
+  // Helper function to search all nodes recursively (including hidden)
+  const searchAllNodes = useCallback((node, searchLower, results, visitedIds = new Set()) => {
+    // Prevent duplicate searches of the same node
+    if (visitedIds.has(node.id)) {
+      return;
+    }
+    visitedIds.add(node.id);
+
+    let alreadyMatched = false;
+    const wasVisible = isNodeVisible(node);
+
+    // Search in node name
+    const nodeName = node.data.name || "";
+    if (nodeName.toLowerCase().includes(searchLower)) {
+      results.push({
+        id: node.id,
+        node: node,
+        matchType: "name",
+        matchText: nodeName,
+        wasVisible
+      });
+      alreadyMatched = true;
+    }
+
+    // Search in properties (only if not already matched)
+    if (!alreadyMatched && node.data.properties) {
+      for (const [key, value] of Object.entries(node.data.properties)) {
+        const keyMatch = key.toLowerCase().includes(searchLower);
+        const valueMatch = String(value).toLowerCase().includes(searchLower);
+
+        if (keyMatch || valueMatch) {
+          results.push({
+            id: node.id,
+            node: node,
+            matchType: "property",
+            matchText: `${key}: ${value}`,
+            wasVisible
+          });
+          break;
+        }
+      }
+    }
+
+    // Search visible children
+    if (node.children) {
+      node.children.forEach(child => searchAllNodes(child, searchLower, results, visitedIds));
+    }
+
+    // Also search hidden children (_children)
+    if (node._children) {
+      node._children.forEach(child => searchAllNodes(child, searchLower, results, visitedIds));
+    }
+  }, [isNodeVisible]);
+
+  // Search functionality with mode support
+  const handleSearch = useCallback((term, mode = "visible") => {
     if (externalSearch) {
       // For external search, just perform the search and notify parent
       if (!term || !rootRef.current) {
@@ -824,39 +997,48 @@ const DiagramViewer = forwardRef(({
       const results = [];
       const searchLower = term.toLowerCase();
 
-      rootRef.current.each(node => {
-        let alreadyMatched = false;
+      if (mode === "all") {
+        // Search ALL nodes (including hidden/collapsed)
+        searchAllNodes(rootRef.current, searchLower, results);
+      } else {
+        // Search only visible (expanded) nodes
+        rootRef.current.each(node => {
+          let alreadyMatched = false;
+          const wasVisible = true; // Always visible in this mode
 
-        // Search in node name
-        const nodeName = node.data.name || "";
-        if (nodeName.toLowerCase().includes(searchLower)) {
-          results.push({
-            id: node.id,
-            node: node,
-            matchType: "name",
-            matchText: nodeName
-          });
-          alreadyMatched = true;
-        }
+          // Search in node name
+          const nodeName = node.data.name || "";
+          if (nodeName.toLowerCase().includes(searchLower)) {
+            results.push({
+              id: node.id,
+              node: node,
+              matchType: "name",
+              matchText: nodeName,
+              wasVisible
+            });
+            alreadyMatched = true;
+          }
 
-        // Search in properties (only if not already matched)
-        if (!alreadyMatched && node.data.properties) {
-          for (const [key, value] of Object.entries(node.data.properties)) {
-            const keyMatch = key.toLowerCase().includes(searchLower);
-            const valueMatch = String(value).toLowerCase().includes(searchLower);
+          // Search in properties (only if not already matched)
+          if (!alreadyMatched && node.data.properties) {
+            for (const [key, value] of Object.entries(node.data.properties)) {
+              const keyMatch = key.toLowerCase().includes(searchLower);
+              const valueMatch = String(value).toLowerCase().includes(searchLower);
 
-            if (keyMatch || valueMatch) {
-              results.push({
-                id: node.id,
-                node: node,
-                matchType: "property",
-                matchText: `${key}: ${value}`
-              });
-              break;
+              if (keyMatch || valueMatch) {
+                results.push({
+                  id: node.id,
+                  node: node,
+                  matchType: "property",
+                  matchText: `${key}: ${value}`,
+                  wasVisible
+                });
+                break;
+              }
             }
           }
-        }
-      });
+        });
+      }
 
       setSearchResults(results); // Set internal results for highlighting
       onSearchResults && onSearchResults(results);
@@ -891,39 +1073,48 @@ const DiagramViewer = forwardRef(({
       const results = [];
       const searchLower = term.toLowerCase();
 
-      rootRef.current.each(node => {
-        let alreadyMatched = false;
+      if (mode === "all") {
+        // Search ALL nodes (including hidden/collapsed)
+        searchAllNodes(rootRef.current, searchLower, results);
+      } else {
+        // Search only visible (expanded) nodes
+        rootRef.current.each(node => {
+          let alreadyMatched = false;
+          const wasVisible = true; // Always visible in this mode
 
-        // Search in node name
-        const nodeName = node.data.name || "";
-        if (nodeName.toLowerCase().includes(searchLower)) {
-          results.push({
-            id: node.id,
-            node: node,
-            matchType: "name",
-            matchText: nodeName
-          });
-          alreadyMatched = true;
-        }
+          // Search in node name
+          const nodeName = node.data.name || "";
+          if (nodeName.toLowerCase().includes(searchLower)) {
+            results.push({
+              id: node.id,
+              node: node,
+              matchType: "name",
+              matchText: nodeName,
+              wasVisible
+            });
+            alreadyMatched = true;
+          }
 
-        // Search in properties (only if not already matched)
-        if (!alreadyMatched && node.data.properties) {
-          for (const [key, value] of Object.entries(node.data.properties)) {
-            const keyMatch = key.toLowerCase().includes(searchLower);
-            const valueMatch = String(value).toLowerCase().includes(searchLower);
+          // Search in properties (only if not already matched)
+          if (!alreadyMatched && node.data.properties) {
+            for (const [key, value] of Object.entries(node.data.properties)) {
+              const keyMatch = key.toLowerCase().includes(searchLower);
+              const valueMatch = String(value).toLowerCase().includes(searchLower);
 
-            if (keyMatch || valueMatch) {
-              results.push({
-                id: node.id,
-                node: node,
-                matchType: "property",
-                matchText: `${key}: ${value}`
-              });
-              break;
+              if (keyMatch || valueMatch) {
+                results.push({
+                  id: node.id,
+                  node: node,
+                  matchType: "property",
+                  matchText: `${key}: ${value}`,
+                  wasVisible
+                });
+                break;
+              }
             }
           }
-        }
-      });
+        });
+      }
 
       setSearchResults(results);
       onSearchResults && onSearchResults(results);
@@ -940,7 +1131,7 @@ const DiagramViewer = forwardRef(({
         }));
       }
     }
-  }, [externalSearch, onSearchResults, hideSearch, zoomToNode]);
+  }, [externalSearch, onSearchResults, hideSearch, zoomToNode, searchAllNodes, isNodeVisible]);
 
   // Handle external search term changes
   useEffect(() => {
@@ -1388,6 +1579,11 @@ const DiagramViewer = forwardRef(({
             {nodeCount.visible} of {nodeCount.total}
           </span>
           <span className="node-count-label">nodes</span>
+          {isProgressiveLoading && (
+            <span className="node-count-label" style={{ marginLeft: '8px', opacity: 0.8 }}>
+              (Loading level {progressiveLevel}...)
+            </span>
+          )}
         </div>
       )}
 

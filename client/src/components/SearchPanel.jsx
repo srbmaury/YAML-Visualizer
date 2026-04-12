@@ -1,22 +1,30 @@
 import React, { useState, useEffect } from "react";
 import "./styles/SearchPanel.css";
 
-export default function SearchPanel({ onSearch, searchResults, currentIndex, onNavigate, onExpandedChange }) {
+export default function SearchPanel({ onSearch, searchResults, currentIndex, onNavigate, onExpandedChange, searchMode, onSearchModeChange }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
+  const [localSearchMode, setLocalSearchMode] = useState(searchMode || "visible");
 
   useEffect(() => {
     // Debounce search
     const timer = setTimeout(() => {
       if (searchTerm.trim()) {
-        onSearch(searchTerm);
+        onSearch(searchTerm, localSearchMode);
       } else {
-        onSearch("");
+        onSearch("", localSearchMode);
       }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, onSearch]);
+  }, [searchTerm, localSearchMode, onSearch]);
+
+  // Handle search mode changes from parent
+  useEffect(() => {
+    if (searchMode && searchMode !== localSearchMode) {
+      setLocalSearchMode(searchMode);
+    }
+  }, [searchMode]);
 
   useEffect(() => {
     // Notify parent of expanded state changes
@@ -27,7 +35,18 @@ export default function SearchPanel({ onSearch, searchResults, currentIndex, onN
 
   const handleClear = () => {
     setSearchTerm("");
-    onSearch("");
+    onSearch("", localSearchMode);
+  };
+
+  const handleSearchModeChange = (mode) => {
+    setLocalSearchMode(mode);
+    if (onSearchModeChange) {
+      onSearchModeChange(mode);
+    }
+    // Re-trigger search with new mode
+    if (searchTerm.trim()) {
+      onSearch(searchTerm, mode);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -81,6 +100,24 @@ export default function SearchPanel({ onSearch, searchResults, currentIndex, onN
             )}
           </div>
 
+          {/* Search Mode Toggle */}
+          <div className="search-mode-toggle">
+            <button
+              className={`mode-btn ${localSearchMode === "visible" ? "active" : ""}`}
+              onClick={() => handleSearchModeChange("visible")}
+              title="Search only visible (expanded) nodes"
+            >
+              👁️ Visible Only
+            </button>
+            <button
+              className={`mode-btn ${localSearchMode === "all" ? "active" : ""}`}
+              onClick={() => handleSearchModeChange("all")}
+              title="Search all nodes (including hidden/collapsed)"
+            >
+              🌐 All Nodes
+            </button>
+          </div>
+
           {searchResults.length > 0 && (
             <div className="search-results">
               <div className="result-info">
@@ -89,9 +126,32 @@ export default function SearchPanel({ onSearch, searchResults, currentIndex, onN
                   {searchResults.length > 1 && ` (${currentIndex + 1}/${searchResults.length})`}
                 </div>
 
+                {/* Search Stats: Show visible vs hidden breakdown */}
+                {localSearchMode === "all" && searchResults.length > 0 && (
+                  <div className="search-stats">
+                    {(() => {
+                      const visibleCount = searchResults.filter(r => r.wasVisible).length;
+                      const hiddenCount = searchResults.length - visibleCount;
+                      return (
+                        <span className="stats-text">
+                          {visibleCount > 0 && <span className="stat-visible">👁️ {visibleCount} visible</span>}
+                          {hiddenCount > 0 && <span className="stat-hidden">🔒 {hiddenCount} hidden</span>}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                )}
+
                 {searchResults[currentIndex]?.matchText && (
                   <div className="current-match-info">
-                    <span className="match-label">📍 Current:</span>
+                    <span className="match-label">
+                      📍 Current:
+                      {!searchResults[currentIndex].wasVisible && (
+                        <span className="was-hidden-badge" title="This node was hidden and auto-expanded">
+                          🔓 was hidden
+                        </span>
+                      )}
+                    </span>
                     <span className="match-text" title={searchResults[currentIndex].matchText}>
                       {searchResults[currentIndex].matchText.length > 30
                         ? searchResults[currentIndex].matchText.substring(0, 30) + "..."

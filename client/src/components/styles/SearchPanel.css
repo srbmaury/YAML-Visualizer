@@ -51,6 +51,93 @@
   margin-bottom: 12px;
 }
 
+/* Search Mode Toggle */
+.search-mode-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 4px;
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #64748b;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.mode-btn:hover {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+}
+
+.mode-btn.active {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  color: white;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+
+.mode-btn.active:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+/* Search Stats */
+.search-stats {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: rgba(234, 179, 8, 0.08);
+  border-radius: 6px;
+  border-left: 3px solid #eab308;
+}
+
+.stats-text {
+  display: flex;
+  gap: 12px;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.stat-visible {
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-hidden {
+  color: #ea580c;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Was Hidden Badge */
+.was-hidden-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 2px 6px;
+  background: rgba(249, 115, 22, 0.15);
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 600;
+  color: #ea580c;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
 .search-input {
   width: 100%;
   padding: 10px 36px 10px 12px;
@@ -346,4 +433,48 @@
   border-color: #45475a;
   color: #cdd6f4;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Dark mode for search mode toggle */
+[data-theme="dark"] .search-mode-toggle {
+  background: #181825;
+}
+
+[data-theme="dark"] .mode-btn {
+  color: #a6adc8;
+}
+
+[data-theme="dark"] .mode-btn:hover {
+  background: rgba(137, 180, 250, 0.15);
+  color: #89b4fa;
+}
+
+[data-theme="dark"] .mode-btn.active {
+  background: linear-gradient(135deg, #89b4fa 0%, #7c3aed 100%);
+  color: #1e1e2e;
+  box-shadow: 0 2px 6px rgba(137, 180, 250, 0.4);
+}
+
+[data-theme="dark"] .mode-btn.active:hover {
+  background: linear-gradient(135deg, #a5c8ff 0%, #9561f5 100%);
+}
+
+/* Dark mode for search stats */
+[data-theme="dark"] .search-stats {
+  background: rgba(250, 204, 21, 0.1);
+  border-left-color: #f9e2af;
+}
+
+[data-theme="dark"] .stat-visible {
+  color: #a6e3a1;
+}
+
+[data-theme="dark"] .stat-hidden {
+  color: #fab387;
+}
+
+[data-theme="dark"] .was-hidden-badge {
+  background: rgba(251, 146, 60, 0.2);
+  border-color: rgba(251, 146, 60, 0.4);
+  color: #fab387;
 }

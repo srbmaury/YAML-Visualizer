@@ -41,6 +41,11 @@ Toggle light/dark themes from any page. All components and diagrams are fully th
 - D3.js-powered tree with expand/collapse, zoom/pan, and path highlighting
 - Fit-to-screen, fullscreen mode, and PNG/SVG export
 - **Time Travel Visualization:** Instantly view and explore your YAML diagram at any point in its version history using a timeline/slider
+- **Smart Search with Two Modes:**
+  - 👁️ **Visible Only**: Search only expanded nodes (fast)
+  - 🌐 **All Nodes**: Search entire tree including collapsed nodes (auto-expands path to results)
+  - Shows statistics: "5 results (3 visible, 2 hidden)"
+  - Hidden matches display "🔓 was hidden" badge when found
 
 ### 🔄 Split-Panel Workspace
 - Real-time diagram updates as you type
@@ -360,11 +365,23 @@ Want to embed an interactive diagram in your website? It's easy!
 
 ---
 
-## 📊 Performance & Limits
+## 📊 Performance & Optimizations
+
+### Performance Features
+- **Virtual Rendering**: Automatically enabled for diagrams with >500 nodes (only renders visible nodes in viewport)
+- **Progressive Loading**: Large diagrams (>1000 nodes) load incrementally by depth level
+- **Lazy Expansion**: Collapsed node children aren't rendered until expanded
+- **Request Animation Frame**: Large rendering operations split across frames for smooth 60fps
+- **Dimension Caching**: Node size calculations are memoized for instant re-renders
+- **Smart Monitoring**: Automatically enables optimizations when render times degrade
 
 ### Recommended Limits
 - **YAML Files**: < 1MB for optimal performance
-- **Node Count**: < 1000 nodes for smooth interaction
+- **Node Count**: 
+  - Up to **500 nodes**: Standard rendering (excellent performance)
+  - **500-1,000 nodes**: Virtual rendering auto-enabled
+  - **1,000-5,000 nodes**: Progressive loading + virtual rendering
+  - **>5,000 nodes**: All optimizations active (still usable, may have initial load delay)
 - **Browser Storage**: ~5-10MB localStorage limit
 - **GitHub Imports**: GitHub API truncates at ~100,000 entries
 
@@ -377,15 +394,13 @@ Want to embed an interactive diagram in your website? It's easy!
 
 ## 🐛 Known Issues & Limitations
 
-- **Large YAML files** (>1000 nodes): May experience slower rendering
-- **Search functionality**: Only searches visible (expanded) nodes
 - **OpenAI API**: Requires internet and valid API key
 - **Browser storage**: localStorage limits vary (~5-10MB typical)
 - **Mobile interactions**: Some features work better on desktop
 - **GitHub imports**: API truncates very large repos (>100k files)
 - **Render Free Tier**: Backend sleeps after 15 minutes (~30s cold start)
 
-> 💡 For large hierarchies, use collapse/expand to improve performance.
+> 💡 **Performance Tip**: Large diagrams automatically optimize rendering. For best results, keep frequently-used sections expanded and collapse deeply nested branches you don't need to view.
 
 ---
 
