@@ -2,6 +2,7 @@ import { validationResult } from 'express-validator';
 import { nanoid } from 'nanoid';
 import YamlFile from '../models/YamlFile.js';
 import VersionHistory from '../models/VersionHistory.js';
+import GithubIntegration from '../models/GithubIntegration.js';
 import User from '../models/User.js';
 import { calculateChangeStats, generateChangeSummary, calculateDelta, shouldCreateSnapshot } from '../services/deltaService.js';
 import { getCanonicalYamlContentForFile } from './versionController.js';
@@ -369,7 +370,7 @@ export const deleteYamlFile = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const yamlFile = await YamlFile.findOneAndDelete({
+    const yamlFile = await YamlFile.findOne({
       _id: req.params.id,
       owner: req.user._id
     });
@@ -378,13 +379,38 @@ export const deleteYamlFile = async (req, res) => {
       return res.status(404).json({ error: 'YAML file not found' });
     }
 
-    // Remove from user's yamlFiles array
-    await User.findByIdAndUpdate(
-      req.user._id,
-      { $pull: { yamlFiles: req.params.id } }
-    );
+    const fileId = req.params.id;
 
-    res.json({ message: 'YAML file deleted successfully' });
+    console.log(`🗑️  Deleting YAML file: ${fileId}`);
+
+    // Cascade delete: Remove all related data
+    const [versionsDeleted, integrationsDeleted] = await Promise.all([
+      // Delete all version history entries
+      VersionHistory.deleteMany({ fileId }),
+
+      // Delete all GitHub integrations
+      GithubIntegration.deleteMany({ yamlFileId: fileId }),
+
+      // Remove from user's yamlFiles array
+      User.findByIdAndUpdate(
+        req.user._id,
+        { $pull: { yamlFiles: fileId } }
+      )
+    ]);
+
+    // Delete the YAML file itself
+    await YamlFile.findByIdAndDelete(fileId);
+
+    console.log(`✅ Deleted: ${versionsDeleted.deletedCount} versions, ${integrationsDeleted.deletedCount} integrations`);
+
+    res.json({
+      message: 'YAML file deleted successfully',
+      deleted: {
+        file: true,
+        versions: versionsDeleted.deletedCount,
+        integrations: integrationsDeleted.deletedCount
+      }
+    });
   } catch (error) {
     console.error('Delete YAML file error:', error);
     res.status(500).json({ error: 'Server error while deleting YAML file' });

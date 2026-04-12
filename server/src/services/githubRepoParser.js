@@ -309,20 +309,11 @@ export async function generateAutoParseYamlFromBranch(owner, repo, branch = 'mai
 }
 
 /**
- * Push webhook: try the pushed commit's tree first (matches that push), then fall back to
- * branch tip — same end state as `generateAutoParseYamlFromBranch` if pin fails (race, API flake).
+ * Push webhook: uses branch name for Contents API (same as manual sync).
+ * Commit SHA pinning was causing race conditions where new files weren't populated.
  */
 export async function generateAutoParseYamlFromPush(owner, repo, branch = 'main', pushBody = null) {
-  const pin = parsePushCommitSha(pushBody);
-  if (pin) {
-    try {
-      return await generateRepoYAML(owner, repo, branch, pin);
-    } catch (err) {
-      console.warn(
-        `[githubRepoParser] Pin to commit ${pin.slice(0, 7)} failed (${err.message}); using branch "${branch}" like connect-repo`
-      );
-    }
-  }
+  // Always use branch for consistent behavior with manual sync
   return generateRepoYAML(owner, repo, branch, null);
 }
 
@@ -491,7 +482,9 @@ export function buildAutoParseYamlDocument(repoInfo, children) {
 }
 
 export async function generateRepoYAML(owner, repo, branch = 'main', afterCommitSha = null) {
-  const ref = afterCommitSha || branch;
+  // Always use branch name for Contents API to avoid race conditions and caching issues
+  // The GitHub Contents API works better with branch names for real-time sync
+  const ref = branch;
 
   const repoInfo = await fetchRepositoryMetadata(owner, repo).catch(err => {
     console.warn(`[githubRepoParser] Repo metadata fetch failed: ${err.message}; using minimal defaults`);

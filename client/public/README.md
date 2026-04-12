@@ -4,7 +4,7 @@ Convert YAML structures into interactive tree diagrams. Built with React, Node.j
 
 ![React](https://img.shields.io/badge/React-19.1.1-blue) ![Node.js](https://img.shields.io/badge/Node.js-18+-green) ![MongoDB](https://img.shields.io/badge/MongoDB-8.0+-brightgreen) ![D3.js](https://img.shields.io/badge/D3.js-7.9.0-orange) ![Express](https://img.shields.io/badge/Express-4.18+-red) ![OpenAI](https://img.shields.io/badge/OpenAI-6.7.0-purple) ![Vite](https://img.shields.io/badge/Vite-7.1.7-646CFF)
 
-**Live Demo**: [yaml-visualizer.netlify.app](https://yaml-visualizer.netlify.app) | **Project Structure**: [View as Diagram](https://yaml-visualizer.netlify.app/shared/fPm0fxmttt)
+**Live Demo**: [yaml-visualizer.netlify.app](https://yaml-visualizer.netlify.app) | **Project Structure**: [View as Diagram](https://yaml-visualizer.netlify.app/shared/cLqNv1m5bx)
 
 ---
 
