@@ -153,11 +153,12 @@ export default function ProfilePage() {
   const handleLoadFile = async (file) => {
     try {
       // Fetch the full file content
-      const fileData = await apiService.getYamlFile(file._id);
+      const response = await apiService.getYamlFile(file._id);
+      const fileData = response.yamlFile;
 
-      // Navigate to the editor with the file content and ID
-      // We'll pass the content via state so it can be loaded into the editor
-      navigate('/', {
+      // Navigate to the editor with the file ID in the URL
+      // The success toast will be shown by App.jsx's useEffect
+      navigate(`/editor/${file._id}`, {
         state: {
           yamlContent: fileData.content,
           fileName: fileData.title,
@@ -165,8 +166,6 @@ export default function ProfilePage() {
           loadFile: true
         }
       });
-
-      showSuccess(`Loaded "${file.title}" into editor`);
     } catch (error) {
       showError(error.message || 'Failed to load file');
     }
