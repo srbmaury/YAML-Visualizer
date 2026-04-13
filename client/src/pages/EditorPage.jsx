@@ -154,8 +154,6 @@ export default function EditorPage({
   }, [setYamlText, collabFileId, handleLocalChange]);
 
   const candidateUserIds = [`${user?.id || ''}`, `${user?._id || ''}`].filter(Boolean);
-  const ownerId = `${fileData?.owner?._id || fileData?.owner || ''}`;
-  const isOwner = !!(fileData && candidateUserIds.includes(ownerId));
   const canShare = fileData && fileData.owner && getUserId(user) === `${fileData.owner}`;
   const hasValidFileId = isValidMongoId(fileData?._id);
   const editorReadOnly = (() => {

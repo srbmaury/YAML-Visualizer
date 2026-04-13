@@ -36,7 +36,11 @@ export const useYamlFile = (setYamlText, isAuthenticated, authLoading = false) =
         setFileData(yamlFile);
         // Only set YAML text if user has access
         let userId = null;
-        try { userId = JSON.parse(localStorage.getItem('user_data'))?.id ?? null; } catch {}
+        try {
+          userId = JSON.parse(localStorage.getItem('user_data'))?.id ?? null;
+        } catch {
+          // Ignore localStorage parse errors
+        }
         const isOwner = userId && yamlFile.owner && (yamlFile.owner.toString() === userId.toString());
         const perm = yamlFile.permissions?.[userId] || yamlFile.permissions?.get?.(userId) || null;
         if (setYamlText && yamlFile.content && (isOwner || perm === 'edit' || perm === 'view')) {

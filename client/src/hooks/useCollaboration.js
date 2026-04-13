@@ -205,7 +205,7 @@ export function useCollaboration(fileId, localContent, setLocalContent, enabled 
         };
 
         // Receive the initial file state when joining a room
-        const handleFileState = ({ content, version, users, canEdit }) => {
+        const handleFileState = ({ content, version, users }) => {
             versionRef.current = version;
             contentRef.current = content;
             lastSentContentRef.current = content;
@@ -242,7 +242,7 @@ export function useCollaboration(fileId, localContent, setLocalContent, enabled 
         };
 
         // Receive a remote text operation
-        const handleRemoteOperation = ({ op, version, userId, username }) => {
+        const handleRemoteOperation = ({ op, version }) => {
             versionRef.current = version;
 
             // Apply to contentRef immediately so handleLocalChange sees the latest
@@ -275,7 +275,7 @@ export function useCollaboration(fileId, localContent, setLocalContent, enabled 
         };
 
         // Typing indicator
-        const handleUserTyping = ({ socketId, username, isTyping }) => {
+        const handleUserTyping = ({ username, isTyping }) => {
             setTypingUsers((prev) => {
                 const next = new Set(prev);
                 if (isTyping) {

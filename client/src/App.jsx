@@ -79,7 +79,8 @@ function AppContent() {
 
         return data.yamlText || DEFAULT_YAML;
       }
-    } catch (e) {
+    } catch {
+      // Ignore localStorage errors, fallback to default
     }
     return DEFAULT_YAML;
   });
@@ -154,6 +155,7 @@ function AppContent() {
     } catch (e) {
       console.error("Error saving to localStorage:", e);
       if (e.name === "QuotaExceededError") {
+        // Storage quota exceeded - ignore and continue
       }
     }
   }, [yamlText]);

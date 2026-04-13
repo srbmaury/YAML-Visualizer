@@ -44,7 +44,7 @@ export default function GitHubIntegrationModal({ isOpen, onClose, fileId, onInte
         setIntegration(data.integration);
         setStep('connected');
       }
-    } catch (error) {
+    } catch {
       // No integration exists, that's fine
     }
   };
@@ -95,7 +95,7 @@ export default function GitHubIntegrationModal({ isOpen, onClose, fileId, onInte
       let data;
       try {
         data = JSON.parse(responseText);
-      } catch (parseError) {
+      } catch {
         throw new Error(`Server returned invalid response: ${responseText.substring(0, 100)}`);
       }
 

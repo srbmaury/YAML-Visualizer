@@ -156,7 +156,7 @@ export class BatchRenderer {
     this.isProcessing = true;
     const batch = this.queue[0];
 
-    requestAnimationFrame((timestamp) => {
+    requestAnimationFrame(() => {
       const startTime = performance.now();
 
       // Process items until we exceed frame budget

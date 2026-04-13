@@ -11,12 +11,10 @@ import "./EmbedViewer.css";
 export default function EmbedViewerPage() {
   const { shareId } = useParams();
   const { darkMode } = useTheme();
-  const [yamlText, setYamlText] = useState("");
   const [parsedData, setParsedData] = useState(null);
   const [treeInfo, setTreeInfo] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [fileTitle, setFileTitle] = useState("");
 
   useEffect(() => {
     const fetchSharedYaml = async () => {
@@ -28,9 +26,6 @@ export default function EmbedViewerPage() {
 
         if (response.yamlFile) {
           const content = response.yamlFile.content || "";
-          const title = response.yamlFile.title || "Untitled";
-          setYamlText(content);
-          setFileTitle(title);
 
           // Auto-visualize the YAML
           try {
