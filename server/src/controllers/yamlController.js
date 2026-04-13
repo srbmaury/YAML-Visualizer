@@ -1,12 +1,43 @@
 import { validationResult } from 'express-validator';
 import { nanoid } from 'nanoid';
+import crypto from 'crypto';
 import YamlFile from '../models/YamlFile.js';
 import VersionHistory from '../models/VersionHistory.js';
 import GithubIntegration from '../models/GithubIntegration.js';
 import User from '../models/User.js';
+import ViewLog from '../models/ViewLog.js';
 import { calculateChangeStats, generateChangeSummary, calculateDelta, shouldCreateSnapshot } from '../services/deltaService.js';
 import { getCanonicalYamlContentForFile } from './versionController.js';
 import { YAML_LIMITS, SHARE, PAGINATION, ERRORS } from '../config/constants.js';
+
+/**
+ * Track a view for a YAML file with deduplication
+ * Only counts unique views per user/session within 24 hours
+ */
+const trackFileView = async (yamlFile, req) => {
+  try {
+    const userId = req.user?._id;
+    const sessionId = req.sessionID || req.headers['x-session-id'] || req.cookies?.sessionId;
+
+    // Create IP hash for additional deduplication (privacy-friendly)
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    const ipHash = ipAddress ? crypto.createHash('sha256').update(ipAddress).digest('hex').substring(0, 16) : null;
+
+    // Check if this view should be counted (deduplication within 24 hours)
+    const shouldCount = await ViewLog.shouldCountView(yamlFile._id, userId, sessionId);
+
+    if (shouldCount) {
+      // Log the view
+      await ViewLog.logView(yamlFile._id, userId, sessionId, ipHash);
+
+      // Increment the counter on the file
+      await yamlFile.incrementViews();
+    }
+  } catch (error) {
+    // Non-blocking: log error but don't fail the request
+    console.error('Error tracking view:', error);
+  }
+};
 
 export const createYamlFile = async (req, res) => {
   try {
@@ -186,6 +217,10 @@ export const getYamlFileById = async (req, res) => {
 
     // File and permission already checked by requireFileAccess middleware
     const yamlFile = req.yamlFile;
+
+    // Track view with deduplication (non-blocking)
+    trackFileView(yamlFile, req);
+
     const yamlOut = yamlFile.toObject();
     const canonical = await getCanonicalYamlContentForFile(yamlFile._id);
     if (canonical != null) {
@@ -245,7 +280,10 @@ export const getSharedYamlFile = async (req, res) => {
         error: 'Access denied. This file is private and you do not have permission to access it.'
       });
     }
-    yamlFile.incrementViews().catch(console.error);
+
+    // Track view with deduplication (non-blocking)
+    trackFileView(yamlFile, req);
+
     const yamlOut = yamlFile.toObject();
     const canonical = await getCanonicalYamlContentForFile(yamlFile._id);
     if (canonical != null) {
@@ -533,5 +571,34 @@ export const toggleYamlFileSharing = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Server error while toggling sharing status' });
+  }
+};
+
+// Get view statistics/analytics for a file (owner only)
+export const getFileViewStats = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    // Ownership already checked by requireOwnership() middleware
+    const yamlFile = req.yamlFile;
+    const { days = 30 } = req.query;
+
+    // Get view statistics
+    const stats = await ViewLog.getFileStats(yamlFile._id, parseInt(days));
+
+    // Add the file's total view count from the counter
+    const response = {
+      ...stats,
+      totalViewsAllTime: yamlFile.views || 0,
+      fileId: yamlFile._id,
+      fileTitle: yamlFile.title
+    };
+
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error while fetching view statistics' });
   }
 };

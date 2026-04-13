@@ -119,6 +119,9 @@ Toggle light/dark themes from any page. All components and diagrams are fully th
 ### 📈 Analytics
 - Node count, depth, and complexity metrics with YAML quality scoring
 - Personal dashboard with usage statistics
+- **Smart View Tracking**: Deduplicates views within 24 hours (same user/session counted once)
+- **View Analytics**: Total views, unique users, unique sessions, and viewing trends
+- **Privacy-Friendly**: IP addresses are hashed, auto-deleted after 30 days
 
 ---
 
@@ -241,6 +244,7 @@ VITE_API_URL=http://localhost:5000
 - `POST /api/yaml/:id/share` - Generate or toggle public share link
 - `POST /api/yaml/:id/permissions` - Set per-user view/edit permissions
 - `GET /api/yaml/:id/collaborators` - List existing collaborators
+- `GET /api/yaml/:id/stats` - Get view statistics/analytics (owner only)
 
 ### Versioning
 - `POST /api/files/:id/versions` - Create a new file version
@@ -438,6 +442,18 @@ npm test -- yaml.test.js
 ```
 
 **Run `npm run test:coverage` to see detailed coverage report**
+
+#### View Tracking Tests
+
+Test the view deduplication system (prevents same user from inflating view counts):
+
+```bash
+# Comprehensive unit tests for ViewLog model
+node server/src/tests/viewlog.test.js
+
+# Interactive demo showing view tracking in action
+node server/src/tests/viewlog-manual-test.js
+```
 
 **Resources:**
 - [Jest Documentation](https://jestjs.io/)

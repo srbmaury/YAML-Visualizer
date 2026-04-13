@@ -14,7 +14,8 @@ import {
   getPublicYamlFiles,
   toggleYamlFileSharing,
   setYamlFilePermissions,
-  getFileCollaborators
+  getFileCollaborators,
+  getFileViewStats
 } from '../controllers/yamlController.js';
 
 const router = express.Router();
@@ -88,5 +89,10 @@ router.post('/:id/permissions', auth, requireOwnership(), [
 router.get('/:id/collaborators', auth, requireOwnership(), [
   param('id').isMongoId().withMessage('Invalid file ID'),
 ], getFileCollaborators);
+
+// Get view statistics for a YAML file (owner only)
+router.get('/:id/stats', auth, requireOwnership(), [
+  param('id').isMongoId().withMessage('Invalid file ID'),
+], getFileViewStats);
 
 export default router;
