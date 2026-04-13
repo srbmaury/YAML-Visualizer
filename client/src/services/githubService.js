@@ -106,8 +106,7 @@ class GitHubService {
 
     try {
       const url = `${this.baseURL}/repos/${owner}/${repo}/contents/${path}`;
-      console.log(`Fetching: ${url} (depth: ${currentDepth}, nodes: ${currentStats.nodes}, calls: ${currentStats.apiCalls})`);
-      
+
       // Increment API call counter
       currentStats.apiCalls++;
       
@@ -130,8 +129,7 @@ class GitHubService {
       }
 
       const contents = await response.json();
-      console.log(`Got ${Array.isArray(contents) ? contents.length : 1} items for ${path || 'root'}`);
-      
+
       // Handle single file
       if (!Array.isArray(contents)) {
         currentStats.nodes++;
@@ -144,11 +142,7 @@ class GitHubService {
         
         // For very large directories, be more aggressive with filtering
         const filteredContents = this.filterLargeDirectory(contents, currentDepth);
-        
-        if (filteredContents.length < contents.length) {
-          console.log(`Filtered large directory from ${contents.length} to ${filteredContents.length} items`);
-        }
-        
+
         // Use filtered contents
         contents.splice(0, contents.length, ...filteredContents);
       }
@@ -242,7 +236,6 @@ class GitHubService {
         }
       }
 
-      console.log(`Processed tree for ${path || 'root'}: ${tree.children.length} children (total nodes: ${currentStats.nodes})`);
       this.cache.set(cacheKey, tree);
       return tree;
 
@@ -468,9 +461,6 @@ class GitHubService {
    * Convert repository tree to YAML format
    */
   convertToYAML(tree, repoInfo) {
-    console.log('Converting tree to YAML:', tree);
-    console.log('Tree has children:', tree.children ? tree.children.length : 'none');
-    
     const yamlTree = {
       name: this.formatYamlName(repoInfo.name || 'Unknown-Repository', false),
       description: repoInfo.description || 'No description available',
@@ -484,7 +474,6 @@ class GitHubService {
       children: this.convertTreeToYAML(tree.children || [])
     };
 
-    console.log('Final YAML structure:', yamlTree);
     return yamlTree;
   }
 
@@ -492,11 +481,7 @@ class GitHubService {
    * Recursively convert tree structure to YAML
    */
   convertTreeToYAML(items) {
-    console.log('Converting items to YAML:', items.length, 'items');
-    
     return items.map(item => {
-      console.log('Processing item:', item.name, item.type);
-      
       if (item.type === 'directory') {
         const node = {
           name: this.formatYamlName(item.name, false),
@@ -505,11 +490,9 @@ class GitHubService {
 
         // Add directory size if available (count of children)
         if (item.children && item.children.length > 0) {
-          console.log(`Directory ${item.name} has ${item.children.length} children`);
           node.size = `${item.children.length} items`;
           node.children = this.convertTreeToYAML(item.children);
         } else {
-          console.log(`Directory ${item.name} has no children`);
           node.size = '0 items';
         }
 
@@ -694,8 +677,6 @@ class GitHubService {
         };
       }
 
-      console.log(`Processing repository with limits:`, enhancedOptions);
-      
       // Get repository tree with enhanced protection
       const tree = await this.getRepositoryTree(
         owner, 

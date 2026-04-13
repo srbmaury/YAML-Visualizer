@@ -95,7 +95,6 @@ export const createVersion = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Create version error:', error);
     res.status(500).json({ error: 'Failed to create version' });
   }
 };
@@ -144,7 +143,6 @@ export const getVersionHistory = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get version history error:', error);
     res.status(500).json({ error: 'Failed to retrieve version history' });
   }
 };
@@ -198,7 +196,6 @@ export const repairVersionHistory = async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Repair version history error:', error);
     res.status(500).json({ error: 'Failed to repair version history' });
   }
 };
@@ -279,7 +276,6 @@ export const getVersion = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get version error:', error);
     res.status(500).json({ error: 'Failed to retrieve version' });
   }
 };
@@ -346,7 +342,6 @@ export const revertToVersion = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Revert version error:', error);
     res.status(500).json({
       error: 'Failed to revert to version'
     });
@@ -421,7 +416,6 @@ export const compareVersions = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Compare versions error:', error);
     res.status(500).json({ error: 'Failed to compare versions' });
   }
 };
@@ -464,7 +458,6 @@ export const cleanupVersionHistory = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Cleanup version history error:', error);
     res.status(500).json({ error: 'Failed to cleanup version history' });
   }
 };

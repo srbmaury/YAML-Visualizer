@@ -14,7 +14,6 @@ export const searchUsers = async (req, res) => {
     }, 'username email _id').limit(20).sort({ username: 1 });
     res.json(users);
   } catch (error) {
-    console.error('User search error:', error);
     res.status(500).json({ error: 'Server error while searching users' });
   }
 };
@@ -25,13 +24,13 @@ export const listAllUsers = async (req, res) => {
     const users = await User.find({}, 'username email _id').sort({ username: 1 });
     res.json(users);
   } catch (error) {
-    console.error('List all users error:', error);
     res.status(500).json({ error: 'Server error while listing users' });
   }
 };
 import { validationResult } from 'express-validator';
 import User from '../models/User.js';
 import YamlFile from '../models/YamlFile.js';
+import { DASHBOARD } from '../config/constants.js';
 
 export const getUserProfile = async (req, res) => {
   try {
@@ -39,7 +38,7 @@ export const getUserProfile = async (req, res) => {
       .populate({
         path: 'yamlFiles',
         select: 'title description createdAt isPublic views',
-        options: { sort: { createdAt: -1 }, limit: 5 } // Latest 5 files
+        options: { sort: { createdAt: -1 }, limit: DASHBOARD.RECENT_FILES_LIMIT }
       })
       .select('-password');
 
@@ -67,7 +66,6 @@ export const getUserProfile = async (req, res) => {
       stats
     });
   } catch (error) {
-    console.error('Get user profile error:', error);
     res.status(500).json({ error: 'Server error while fetching profile' });
   }
 };
@@ -121,7 +119,6 @@ export const updateUserProfile = async (req, res) => {
       user
     });
   } catch (error) {
-    console.error('Update user profile error:', error);
     res.status(500).json({ error: 'Server error while updating profile' });
   }
 };
@@ -149,7 +146,6 @@ export const changePassword = async (req, res) => {
 
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
-    console.error('Change password error:', error);
     res.status(500).json({ error: 'Server error while changing password' });
   }
 };
@@ -179,7 +175,6 @@ export const deleteAccount = async (req, res) => {
 
     res.json({ message: 'Account deleted successfully' });
   } catch (error) {
-    console.error('Delete account error:', error);
     res.status(500).json({ error: 'Server error while deleting account' });
   }
 };
@@ -231,7 +226,6 @@ export const getDashboard = async (req, res) => {
       filesByMonth
     });
   } catch (error) {
-    console.error('Get dashboard data error:', error);
     res.status(500).json({ error: 'Server error while fetching dashboard data' });
   }
 };

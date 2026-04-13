@@ -75,8 +75,6 @@ export default function GitHubIntegrationModal({ isOpen, onClose, fileId, onInte
             ...formData
           };
 
-      console.log('Connecting to GitHub:', { endpoint, mode, payload });
-
       // Get auth token from localStorage for Authorization header
       const headers = { 'Content-Type': 'application/json' };
       const token = localStorage.getItem('auth_token');
@@ -91,11 +89,8 @@ export default function GitHubIntegrationModal({ isOpen, onClose, fileId, onInte
         body: JSON.stringify(payload)
       });
 
-      console.log('Response status:', response.status);
-
       // Get response text first to see what we're actually getting
       const responseText = await response.text();
-      console.log('Response text:', responseText);
 
       let data;
       try {

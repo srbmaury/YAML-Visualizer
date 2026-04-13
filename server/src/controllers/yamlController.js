@@ -6,6 +6,7 @@ import GithubIntegration from '../models/GithubIntegration.js';
 import User from '../models/User.js';
 import { calculateChangeStats, generateChangeSummary, calculateDelta, shouldCreateSnapshot } from '../services/deltaService.js';
 import { getCanonicalYamlContentForFile } from './versionController.js';
+import { YAML_LIMITS, SHARE, PAGINATION, ERRORS } from '../config/constants.js';
 
 export const createYamlFile = async (req, res) => {
   try {
@@ -22,7 +23,7 @@ export const createYamlFile = async (req, res) => {
       description,
       owner: req.user._id,
       isPublic,
-      tags: tags.slice(0, 10), // Limit to 10 tags
+      tags: tags.slice(0, YAML_LIMITS.MAX_TAGS),
       metadata,
       currentVersion: 1
     });
@@ -69,14 +70,13 @@ export const createYamlFile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Save YAML error:', error);
     res.status(500).json({ error: 'Server error while saving YAML file' });
   }
 };
 
 export const getSharedWithMeYamlFiles = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
+    const { page = PAGINATION.DEFAULT_PAGE, limit = PAGINATION.DEFAULT_LIMIT, search } = req.query;
     const skip = (page - 1) * limit;
     const userId = req.user._id.toString();
     const permissionKey = `permissions.${userId}`;
@@ -105,7 +105,7 @@ export const getSharedWithMeYamlFiles = async (req, res) => {
       const fileObj = file.toObject();
       fileObj.accessLevel = file.permissions?.get(userId) || file.permissions?.[userId] || 'view';
       if (fileObj.content) {
-        fileObj.contentPreview = fileObj.content.substring(0, 200);
+        fileObj.contentPreview = fileObj.content.substring(0, YAML_LIMITS.CONTENT_PREVIEW_LENGTH);
       }
       return fileObj;
     });
@@ -122,14 +122,13 @@ export const getSharedWithMeYamlFiles = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get shared-with-me YAML files error:', error);
     res.status(500).json({ error: 'Server error while fetching shared YAML files' });
   }
 };
 
 export const getUserYamlFiles = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
+    const { page = PAGINATION.DEFAULT_PAGE, limit = PAGINATION.DEFAULT_LIMIT, search } = req.query;
     const skip = (page - 1) * limit;
 
     let query = { owner: req.user._id };
@@ -148,11 +147,11 @@ export const getUserYamlFiles = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
-    // Add content preview to each file (first 200 characters)
+    // Add content preview to each file
     const filesWithPreview = yamlFiles.map(file => {
       const fileObj = file.toObject();
       if (fileObj.content) {
-        fileObj.contentPreview = fileObj.content.substring(0, 200);
+        fileObj.contentPreview = fileObj.content.substring(0, YAML_LIMITS.CONTENT_PREVIEW_LENGTH);
         // Keep full content for now, frontend can handle truncation
         // delete fileObj.content; // Remove full content to reduce payload
       }
@@ -171,7 +170,6 @@ export const getUserYamlFiles = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get YAML files error:', error);
     res.status(500).json({ error: 'Server error while fetching YAML files' });
   }
 };
@@ -190,14 +188,14 @@ export const getYamlFileById = async (req, res) => {
     const { id } = req.params;
     if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({
-        error: 'Invalid file ID format. Must be a valid MongoDB ObjectId.'
+        error: ERRORS.INVALID_OBJECT_ID
       });
     }
 
     const yamlFile = await YamlFile.findById(id);
     if (!yamlFile) {
       return res.status(404).json({
-        error: 'YAML file not found or you do not have permission to access it.'
+        error: ERRORS.FILE_NOT_FOUND
       });
     }
     // Only owner or users with view/edit permission can access
@@ -214,7 +212,6 @@ export const getYamlFileById = async (req, res) => {
     }
     res.json({ yamlFile: yamlOut });
   } catch (error) {
-    console.error('Get YAML file error:', error);
 
     // Handle specific MongoDB errors
     if (error.name === 'CastError' && error.kind === 'ObjectId') {
@@ -242,10 +239,10 @@ export const getSharedYamlFile = async (req, res) => {
 
     const { shareId } = req.params;
 
-    // Validate shareId format (should be 10 characters)
-    if (!shareId || shareId.length !== 10) {
+    // Validate shareId format
+    if (!shareId || shareId.length !== SHARE.ID_LENGTH) {
       return res.status(400).json({
-        error: 'Invalid share ID format. Must be a 10-character string.'
+        error: ERRORS.INVALID_SHARE_ID
       });
     }
 
@@ -275,7 +272,6 @@ export const getSharedYamlFile = async (req, res) => {
     }
     res.json({ yamlFile: yamlOut });
   } catch (error) {
-    console.error('Get shared YAML file error:', error);
     res.status(500).json({
       error: 'Server error while fetching shared file',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -342,7 +338,7 @@ export const updateYamlFile = async (req, res) => {
     if (title) yamlFile.title = title;
     if (description !== undefined) yamlFile.description = description;
     if (isPublic !== undefined) yamlFile.isPublic = isPublic;
-    if (tags) yamlFile.tags = tags.slice(0, 10);
+    if (tags) yamlFile.tags = tags.slice(0, YAML_LIMITS.MAX_TAGS);
     if (metadata) yamlFile.metadata = { ...yamlFile.metadata, ...metadata };
     await yamlFile.save();
     res.json({
@@ -358,7 +354,6 @@ export const updateYamlFile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Update YAML file error:', error);
     res.status(500).json({ error: 'Server error while updating YAML file' });
   }
 };
@@ -381,8 +376,6 @@ export const deleteYamlFile = async (req, res) => {
 
     const fileId = req.params.id;
 
-    console.log(`🗑️  Deleting YAML file: ${fileId}`);
-
     // Cascade delete: Remove all related data
     const [versionsDeleted, integrationsDeleted] = await Promise.all([
       // Delete all version history entries
@@ -401,8 +394,6 @@ export const deleteYamlFile = async (req, res) => {
     // Delete the YAML file itself
     await YamlFile.findByIdAndDelete(fileId);
 
-    console.log(`✅ Deleted: ${versionsDeleted.deletedCount} versions, ${integrationsDeleted.deletedCount} integrations`);
-
     res.json({
       message: 'YAML file deleted successfully',
       deleted: {
@@ -412,14 +403,13 @@ export const deleteYamlFile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Delete YAML file error:', error);
     res.status(500).json({ error: 'Server error while deleting YAML file' });
   }
 };
 
 export const getPublicYamlFiles = async (req, res) => {
   try {
-    const { page = 1, limit = 20, search, sortBy = 'createdAt' } = req.query;
+    const { page = PAGINATION.DEFAULT_PAGE, limit = PAGINATION.DEFAULT_LIMIT_LARGE, search, sortBy = 'createdAt' } = req.query;
     const skip = (page - 1) * limit;
 
     let query = { isPublic: true };
@@ -457,7 +447,6 @@ export const getPublicYamlFiles = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Browse public YAML files error:', error);
     res.status(500).json({ error: 'Server error while browsing public files' });
   }
 };
@@ -485,7 +474,6 @@ export const setYamlFilePermissions = async (req, res) => {
     await yamlFile.save();
     res.json({ message: 'Permissions updated', permissions: yamlFile.permissions });
   } catch (error) {
-    console.error('Set permissions error:', error);
     res.status(500).json({ error: 'Server error while setting permissions' });
   }
 };
@@ -516,7 +504,6 @@ export const getFileCollaborators = async (req, res) => {
     }));
     res.json({ collaborators });
   } catch (error) {
-    console.error('Get collaborators error:', error);
     res.status(500).json({ error: 'Server error while fetching collaborators' });
   }
 };
@@ -539,8 +526,8 @@ export const toggleYamlFileSharing = async (req, res) => {
     yamlFile.isPublic = isPublic;
     if (isPublic) {
       // Ensure shareId exists
-      if (!yamlFile.shareId || yamlFile.shareId.length !== 10) {
-        yamlFile.shareId = nanoid(10);
+      if (!yamlFile.shareId || yamlFile.shareId.length !== SHARE.ID_LENGTH) {
+        yamlFile.shareId = nanoid(SHARE.ID_LENGTH);
       }
     }
     await yamlFile.save();
@@ -558,7 +545,6 @@ export const toggleYamlFileSharing = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Toggle sharing error:', error);
     res.status(500).json({ error: 'Server error while toggling sharing status' });
   }
 };

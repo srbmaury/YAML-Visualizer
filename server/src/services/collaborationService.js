@@ -170,7 +170,6 @@ export function initializeSocketServer(httpServer, corsOptions) {
     });
 
     io.on('connection', (socket) => {
-        console.log(`🔌 Socket connected: ${socket.id} (${socket.userData.username})`);
 
         // --- Join a file room for collaborative editing ---
         socket.on('join-file', async ({ fileId }) => {
@@ -242,7 +241,6 @@ export function initializeSocketServer(httpServer, corsOptions) {
                 // Deduplicate users by userId so each real user appears only once
                 const deduplicatedUsers = deduplicateUsers(allUsers);
 
-                console.log(`📂 User ${socket.userData.username} (${socket.id}) joined room ${fileId} — ${room.users.size} socket(s), ${deduplicatedUsers.length} unique user(s) in room: [${deduplicatedUsers.map(u => u.username).join(', ')}]`);
 
                 // Send the current state to the joining user
                 socket.emit('file-state', {
@@ -255,7 +253,6 @@ export function initializeSocketServer(httpServer, corsOptions) {
                 // Only notify others if this is the first socket/tab for this user
                 const isFirstSocket = countUserSockets(room, socket.userData.userId) === 1;
                 if (isFirstSocket) {
-                    console.log(`📢 Broadcasting user-joined for ${socket.userData.username} to others in room ${fileId}`);
                     socket.to(roomId).emit('user-joined', {
                         socketId: socket.id,
                         userId: socket.userData.userId,
@@ -376,7 +373,6 @@ export function initializeSocketServer(httpServer, corsOptions) {
 
         // --- Handle disconnect ---
         socket.on('disconnect', () => {
-            console.log(`🔌 Socket disconnected: ${socket.id}`);
             // Clean up all rooms this socket was in
             for (const roomId of socket.rooms) {
                 if (roomId.startsWith('file:')) {
@@ -458,7 +454,6 @@ export function notifyFileUpdate(fileId, newContent) {
         if (sockets.length === 0) {
             console.warn(`📢 GitHub update saved for file ${fileId}, but no Socket.IO clients in ${roomId} (diagram may be open without join or after disconnect).`);
         } else {
-            console.log(`📢 Notified ${sockets.length} client(s) in ${roomId} of GitHub update`);
         }
     }).catch(() => {});
 }

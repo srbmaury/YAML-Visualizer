@@ -4,7 +4,6 @@
  */
 export const exportDiagramAsSVG = (svgElement, filename = "diagram.svg") => {
     if (!svgElement) {
-        console.error('No SVG element provided for export');
         return;
     }
     try {
@@ -64,12 +63,9 @@ export const exportDiagramAsSVG = (svgElement, filename = "diagram.svg") => {
 
 export const exportDiagramAsPNG = (svgElement, filename = null, treeData = null) => {
     if (!svgElement) {
-        console.error('No SVG element provided for export');
         return;
     }
 
-    console.log('🎨 PNG Export: Starting export with enhanced styling...');
-    console.log('Tree data available:', !!treeData);
 
     try {
         // Create a copy of the SVG for export
@@ -133,7 +129,6 @@ export const exportDiagramAsPNG = (svgElement, filename = null, treeData = null)
             width = Math.max(800, estimatedWidth); // Minimum reasonable width
             height = Math.max(600, estimatedHeight); // Minimum reasonable height
 
-            console.log(`Tree-based sizing: ${totalLevels} levels, max ${maxNodesInLevel} nodes per level -> ${width}x${height}`);
         } else {
             // Fallback to content-based calculation
             const allElements = svgClone.querySelectorAll('circle, rect, line, path, text');
@@ -273,7 +268,6 @@ export const exportDiagramAsPNG = (svgElement, filename = null, treeData = null)
                         link.download = filename || `yaml-diagram-${timestamp}.png`;
                         link.click();
 
-                        console.log('✅ PNG Export: Successfully exported with enhanced styling');
 
                         // Cleanup
                         URL.revokeObjectURL(url);

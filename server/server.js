@@ -125,8 +125,6 @@ server.listen(PORT, '0.0.0.0', () => {
   initializeSocketServer(server, corsOptions);
 
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 Server accessible from any device on network: http://0.0.0.0:${PORT}`);
-  console.log(`📱 Local access: http://localhost:${PORT}`);
   console.log(`🔒 Environment: ${process.env.NODE_ENV || 'development'}`);
   if (cors_origin.length > 0) {
     console.log(`🔓 CORS: Whitelist mode - allowed origins:`);

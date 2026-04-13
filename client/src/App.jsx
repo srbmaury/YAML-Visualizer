@@ -79,7 +79,6 @@ function AppContent() {
         return data.yamlText || DEFAULT_YAML;
       }
     } catch (e) {
-      console.error("Error loading from localStorage:", e);
     }
     return DEFAULT_YAML;
   });
@@ -154,7 +153,6 @@ function AppContent() {
     } catch (e) {
       console.error("Error saving to localStorage:", e);
       if (e.name === "QuotaExceededError") {
-        console.warn("localStorage quota exceeded");
       }
     }
   }, [yamlText]);
@@ -230,7 +228,6 @@ function AppContent() {
         navigate("/diagram");
       }
     } catch (e) {
-      console.error("Parsing error:", e);
       const errorMessage = "Invalid YAML: " + e.message;
       setError(errorMessage);
       showError(errorMessage);
@@ -584,7 +581,6 @@ function AppContent() {
         }
       }
     } catch (e) {
-      console.error("Parsing error after import:", e);
       setError("Imported YAML has parsing issues: " + e.message);
     }
   };

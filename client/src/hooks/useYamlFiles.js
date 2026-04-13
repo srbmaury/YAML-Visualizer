@@ -36,7 +36,6 @@ export const useYamlFiles = () => {
       }));
       setSavedGraphs(graphs);
     } catch (err) {
-      console.error('Failed to load saved graphs:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -70,7 +69,6 @@ export const useYamlFiles = () => {
       }));
       setSharedGraphs(graphs);
     } catch (err) {
-      console.error('Failed to load shared graphs:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -112,7 +110,6 @@ export const useYamlFiles = () => {
 
       return newGraph;
     } catch (err) {
-      console.error('Failed to save graph:', err);
       setError(err.message);
       throw err;
     } finally {
@@ -155,7 +152,6 @@ export const useYamlFiles = () => {
 
       return updatedGraph;
     } catch (err) {
-      console.error('Failed to update graph:', err);
       setError(err.message);
       throw err;
     } finally {
@@ -176,7 +172,6 @@ export const useYamlFiles = () => {
       await apiService.deleteYamlFile(id);
       setSavedGraphs(prev => prev.filter(graph => graph.id !== id));
     } catch (err) {
-      console.error('Failed to delete graph:', err);
       setError(err.message);
       throw err;
     } finally {
@@ -204,7 +199,6 @@ export const useYamlFiles = () => {
         owner: response.yamlFile.owner
       };
     } catch (err) {
-      console.error('Failed to load shared graph:', err);
       setError(err.message);
       throw err;
     } finally {
