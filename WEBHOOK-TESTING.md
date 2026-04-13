@@ -44,11 +44,3 @@ curl -X POST "http://localhost:5000/api/github/webhook/<integration_id>" \
 
 - **Same branch** → `{ "synced": true }`
 - **Different branch** → ignored
-
----
-
-## 🛠 Troubleshooting
-
-- Wrong ID → re-run script  
-- MongoDB error → start DB  
-- Server down → check `:5000`  

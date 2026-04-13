@@ -1,6 +1,7 @@
 import express from 'express';
 import { body, param } from 'express-validator';
 import { auth, optionalAuth } from '../middleware/auth.js';
+import { requireFileAccess, requireOwnership } from '../middleware/authorization.js';
 
 import {
   createYamlFile,
@@ -39,8 +40,8 @@ router.get('/my', auth, getUserYamlFiles);
 // Get files shared with user (non-owned)
 router.get('/shared-with-me', auth, getSharedWithMeYamlFiles);
 
-// Get YAML file by ID (owner only)
-router.get('/:id', auth, [
+// Get YAML file by ID (requires view permission)
+router.get('/:id', auth, requireFileAccess('view'), [
   param('id').isMongoId().withMessage('Invalid file ID')
 ], getYamlFileById);
 
@@ -49,8 +50,8 @@ router.get('/shared/:shareId', optionalAuth, [
   param('shareId').isLength({ min: 10, max: 10 }).withMessage('Invalid share ID')
 ], getSharedYamlFile);
 
-// Update YAML file
-router.put('/:id', auth, [
+// Update YAML file (requires edit permission)
+router.put('/:id', auth, requireFileAccess('edit'), [
   param('id').isMongoId().withMessage('Invalid file ID'),
   body('title')
     .optional()
@@ -63,14 +64,14 @@ router.put('/:id', auth, [
     .withMessage('YAML content must be less than 1MB'),
 ], updateYamlFile);
 
-// Toggle sharing/public status
-router.post('/:id/share', auth, [
+// Toggle sharing/public status (owner only)
+router.post('/:id/share', auth, requireOwnership(), [
   param('id').isMongoId().withMessage('Invalid file ID'),
   body('isPublic').isBoolean().withMessage('isPublic must be a boolean'),
 ], toggleYamlFileSharing);
 
-// Delete YAML file
-router.delete('/:id', auth, [
+// Delete YAML file (owner only)
+router.delete('/:id', auth, requireOwnership(), [
   param('id').isMongoId().withMessage('Invalid file ID')
 ], deleteYamlFile);
 
@@ -78,13 +79,13 @@ router.delete('/:id', auth, [
 router.get('/public/browse', getPublicYamlFiles);
 
 // Set per-user permissions for a YAML file (owner only)
-router.post('/:id/permissions', auth, [
+router.post('/:id/permissions', auth, requireOwnership(), [
   param('id').isMongoId().withMessage('Invalid file ID'),
   body('permissions').isObject().withMessage('Permissions must be an object'),
 ], setYamlFilePermissions);
 
 // Get collaborators for a YAML file (owner only)
-router.get('/:id/collaborators', auth, [
+router.get('/:id/collaborators', auth, requireOwnership(), [
   param('id').isMongoId().withMessage('Invalid file ID'),
 ], getFileCollaborators);
 

@@ -419,6 +419,31 @@ We welcome contributions that enhance the YAML visualization experience:
 - Ensure mobile responsiveness
 - Add tests for new features
 
+### 🧪 Testing
+
+Comprehensive test suite for the backend using **Jest** and **Supertest**.
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run specific test file
+npm test -- yaml.test.js
+```
+
+**Run `npm run test:coverage` to see detailed coverage report**
+
+**Resources:**
+- [Jest Documentation](https://jestjs.io/)
+- [Supertest Documentation](https://github.com/visionmedia/supertest)
+- [MongoDB Memory Server](https://github.com/nodkz/mongodb-memory-server)
+
 ---
 
 ## 📄 License

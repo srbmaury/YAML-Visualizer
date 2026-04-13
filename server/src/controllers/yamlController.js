@@ -184,29 +184,10 @@ export const getYamlFileById = async (req, res) => {
       });
     }
 
-    // Additional check for valid ObjectId format
-    const { id } = req.params;
-    if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({
-        error: ERRORS.INVALID_OBJECT_ID
-      });
-    }
-
-    const yamlFile = await YamlFile.findById(id);
-    if (!yamlFile) {
-      return res.status(404).json({
-        error: ERRORS.FILE_NOT_FOUND
-      });
-    }
-    // Only owner or users with view/edit permission can access
-    if (
-      yamlFile.owner.toString() !== req.user._id.toString() &&
-      (!yamlFile.permissions?.get(req.user._id.toString()) || yamlFile.permissions.get(req.user._id.toString()) === 'no-access')
-    ) {
-      return res.status(403).json({ error: 'Access denied. You do not have permission to view this file.' });
-    }
+    // File and permission already checked by requireFileAccess middleware
+    const yamlFile = req.yamlFile;
     const yamlOut = yamlFile.toObject();
-    const canonical = await getCanonicalYamlContentForFile(id);
+    const canonical = await getCanonicalYamlContentForFile(yamlFile._id);
     if (canonical != null) {
       yamlOut.content = canonical;
     }
@@ -288,17 +269,8 @@ export const updateYamlFile = async (req, res) => {
 
     const { title, content, description, isPublic, tags, metadata, versionDescription } = req.body;
 
-    const yamlFile = await YamlFile.findById(req.params.id);
-    if (!yamlFile) {
-      return res.status(404).json({ error: 'YAML file not found' });
-    }
-    // Only owner or users with edit permission can update
-    if (
-      yamlFile.owner.toString() !== req.user._id.toString() &&
-      (!yamlFile.permissions?.get(req.user._id.toString()) || yamlFile.permissions.get(req.user._id.toString()) !== 'edit')
-    ) {
-      return res.status(403).json({ error: 'Access denied. You do not have permission to edit this file.' });
-    }
+    // File and permission already checked by requireFileAccess('edit') middleware
+    const yamlFile = req.yamlFile;
     // If content is being updated, create a new version using the new version history system
     const head = await getCanonicalYamlContentForFile(yamlFile._id);
     const headStr = head ?? '';
@@ -365,16 +337,9 @@ export const deleteYamlFile = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const yamlFile = await YamlFile.findOne({
-      _id: req.params.id,
-      owner: req.user._id
-    });
-
-    if (!yamlFile) {
-      return res.status(404).json({ error: 'YAML file not found' });
-    }
-
-    const fileId = req.params.id;
+    // Ownership already checked by requireOwnership() middleware
+    const yamlFile = req.yamlFile;
+    const fileId = yamlFile._id;
 
     // Cascade delete: Remove all related data
     const [versionsDeleted, integrationsDeleted] = await Promise.all([
@@ -458,12 +423,10 @@ export const setYamlFilePermissions = async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    const { id } = req.params;
+
     const { permissions } = req.body;
-    const yamlFile = await YamlFile.findOne({ _id: id, owner: req.user._id });
-    if (!yamlFile) {
-      return res.status(404).json({ error: 'YAML file not found or you do not have permission.' });
-    }
+    // Ownership already checked by requireOwnership() middleware
+    const yamlFile = req.yamlFile;
     // Validate permissions object
     for (const [userId, perm] of Object.entries(permissions)) {
       if (!['no-access', 'view', 'edit'].includes(perm)) {
@@ -481,11 +444,8 @@ export const setYamlFilePermissions = async (req, res) => {
 // Get collaborators for a YAML file (users with permissions)
 export const getFileCollaborators = async (req, res) => {
   try {
-    const { id } = req.params;
-    const yamlFile = await YamlFile.findOne({ _id: id, owner: req.user._id });
-    if (!yamlFile) {
-      return res.status(404).json({ error: 'YAML file not found or you do not have permission.' });
-    }
+    // Ownership already checked by requireOwnership() middleware
+    const yamlFile = req.yamlFile;
     const permissionsMap = yamlFile.permissions || new Map();
     const userIds = [];
     const permEntries = {};
@@ -515,13 +475,9 @@ export const toggleYamlFileSharing = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { id } = req.params;
     const { isPublic } = req.body;
-
-    const yamlFile = await YamlFile.findOne({ _id: id, owner: req.user._id });
-    if (!yamlFile) {
-      return res.status(404).json({ error: 'YAML file not found or you do not have permission.' });
-    }
+    // Ownership already checked by requireOwnership() middleware
+    const yamlFile = req.yamlFile;
 
     yamlFile.isPublic = isPublic;
     if (isPublic) {
