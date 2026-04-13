@@ -16,6 +16,7 @@ import SharedViewerWrapper from "./pages/SharedViewerWrapper";
 import EmbedViewerPage from "./pages/EmbedViewerPage";
 import DocsPage from "./pages/DocsPage";
 import ProfilePage from "./pages/ProfilePage";
+import PublicGraphsPage from "./pages/PublicGraphsPage";
 import AuthModal from "./components/AuthModal";
 import apiService from "./services/apiService";
 import yaml from "js-yaml";
@@ -322,7 +323,8 @@ function AppContent() {
                   title: graphData.title,
                   yamlContent: yamlText,
                   description: graphData.description,
-                  isPublic: graphData.isPublic
+                  isPublic: graphData.isPublic,
+                  tags: graphData.tags || []
                 });
 
                 if (result && result.id) {
@@ -344,7 +346,8 @@ function AppContent() {
               title: graphData.title,
               yamlContent: yamlText,
               description: graphData.description,
-              isPublic: graphData.isPublic
+              isPublic: graphData.isPublic,
+              tags: graphData.tags || []
             });
 
             if (copyResult && copyResult.id) {
@@ -366,7 +369,8 @@ function AppContent() {
           title: graphData.title,
           yamlContent: yamlText,
           description: graphData.description,
-          isPublic: graphData.isPublic
+          isPublic: graphData.isPublic,
+          tags: graphData.tags || []
         });
 
         // Set the current file ID for version history
@@ -386,7 +390,8 @@ function AppContent() {
           title: graphData.title,
           yamlContent: yamlText,
           description: graphData.description,
-          isPublic: graphData.isPublic
+          isPublic: graphData.isPublic,
+          tags: graphData.tags || []
         });
 
         // Set the current file ID for version history
@@ -503,7 +508,8 @@ function AppContent() {
         title: graph.title,
         yamlContent: yamlText,
         description: graph.description,
-        isPublic: graph.isPublic
+        isPublic: graph.isPublic,
+        tags: graph.tags || []
       });
 
       showSuccess(`Graph "${graph.title}" updated successfully!`);
@@ -722,6 +728,7 @@ function AppContent() {
         <Route path="/embed/:shareId" element={<EmbedViewerPage />} />
         <Route path="/docs" element={<DocsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/explore" element={<PublicGraphsPage />} />
       </Routes>
 
       <Suspense fallback={null}>

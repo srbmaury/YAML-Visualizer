@@ -37,7 +37,7 @@ export const getUserProfile = async (req, res) => {
     const user = await User.findById(req.user._id)
       .populate({
         path: 'yamlFiles',
-        select: 'title description createdAt isPublic views',
+        select: 'title description createdAt isPublic views tags',
         options: { sort: { createdAt: -1 }, limit: DASHBOARD.RECENT_FILES_LIMIT }
       })
       .select('-password');
@@ -185,13 +185,13 @@ export const getDashboard = async (req, res) => {
 
     // Get recent files
     const recentFiles = await YamlFile.find({ owner: userId })
-      .select('title description createdAt updatedAt isPublic views')
+      .select('title description createdAt updatedAt isPublic views tags')
       .sort({ updatedAt: -1 })
       .limit(5);
 
     // Get popular files (most viewed)
     const popularFiles = await YamlFile.find({ owner: userId })
-      .select('title description views isPublic createdAt')
+      .select('title description views isPublic createdAt tags')
       .sort({ views: -1 })
       .limit(5);
 

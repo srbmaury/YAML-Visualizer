@@ -374,17 +374,48 @@ export const deleteYamlFile = async (req, res) => {
 
 export const getPublicYamlFiles = async (req, res) => {
   try {
-    const { page = PAGINATION.DEFAULT_PAGE, limit = PAGINATION.DEFAULT_LIMIT_LARGE, search, sortBy = 'createdAt' } = req.query;
+    const { page = PAGINATION.DEFAULT_PAGE, limit = PAGINATION.DEFAULT_LIMIT_LARGE, search, sortBy = 'createdAt', author, tags } = req.query;
     const skip = (page - 1) * limit;
 
     let query = { isPublic: true };
 
+    // Handle search
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
         { tags: { $in: [new RegExp(search, 'i')] } }
       ];
+    }
+
+    // Handle author filter - need to first get user IDs, then filter by owner
+    if (author) {
+      const authors = author.split(',').map(a => a.trim());
+      const users = await User.find({
+        username: { $in: authors.map(a => new RegExp(`^${a}$`, 'i')) }
+      }).select('_id');
+
+      if (users.length > 0) {
+        query.owner = { $in: users.map(u => u._id) };
+      } else {
+        // No matching users, return empty results
+        return res.json({
+          yamlFiles: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            pages: 0
+          }
+        });
+      }
+    }
+
+    // Handle tags filter
+    if (tags) {
+      const tagList = tags.split(',').map(t => t.trim());
+      // Match files that have at least one of the specified tags
+      query.tags = { $in: tagList.map(t => new RegExp(`^${t}$`, 'i')) };
     }
 
     const sortOptions = {

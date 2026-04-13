@@ -167,11 +167,21 @@ describe('YAML Sharing & Permissions API', () => {
       // Create public files
       await YamlFile.create(createYamlFileData(owner._id, {
         title: 'Public 1',
-        isPublic: true
+        description: 'First public file',
+        isPublic: true,
+        tags: ['demo', 'test']
       }));
       await YamlFile.create(createYamlFileData(owner._id, {
         title: 'Public 2',
-        isPublic: true
+        description: 'Second public file',
+        isPublic: true,
+        tags: ['example']
+      }));
+      await YamlFile.create(createYamlFileData(owner._id, {
+        title: 'Another Graph',
+        description: 'Contains demo keyword',
+        isPublic: true,
+        views: 50
       }));
 
       // Create private files
@@ -186,7 +196,7 @@ describe('YAML Sharing & Permissions API', () => {
         .get('/api/yaml/public/browse')
         .expect(200);
 
-      expect(response.body.yamlFiles).toHaveLength(2);
+      expect(response.body.yamlFiles).toHaveLength(3);
       expect(response.body.yamlFiles.every(f => f.isPublic)).toBe(true);
     });
 
@@ -196,7 +206,8 @@ describe('YAML Sharing & Permissions API', () => {
         .expect(200);
 
       expect(response.body.yamlFiles).toHaveLength(1);
-      expect(response.body.pagination.total).toBe(2);
+      expect(response.body.pagination.total).toBe(3);
+      expect(response.body.pagination.pages).toBe(3);
     });
 
     it('should not require authentication', async () => {
@@ -205,6 +216,151 @@ describe('YAML Sharing & Permissions API', () => {
         .expect(200);
 
       expect(response.body.yamlFiles).toBeDefined();
+    });
+
+    it('should search by title', async () => {
+      const response = await request(app)
+        .get('/api/yaml/public/browse?search=Public')
+        .expect(200);
+
+      expect(response.body.yamlFiles).toHaveLength(2);
+      expect(response.body.yamlFiles.every(f => f.title.includes('Public'))).toBe(true);
+    });
+
+    it('should search by description', async () => {
+      const response = await request(app)
+        .get('/api/yaml/public/browse?search=demo')
+        .expect(200);
+
+      expect(response.body.yamlFiles.length).toBeGreaterThanOrEqual(1);
+      const titles = response.body.yamlFiles.map(f => f.title);
+      expect(titles).toContain('Another Graph');
+    });
+
+    it('should search by tags', async () => {
+      const response = await request(app)
+        .get('/api/yaml/public/browse?search=example')
+        .expect(200);
+
+      expect(response.body.yamlFiles.length).toBeGreaterThanOrEqual(1);
+      const titles = response.body.yamlFiles.map(f => f.title);
+      expect(titles).toContain('Public 2');
+    });
+
+    it('should sort by views descending', async () => {
+      const response = await request(app)
+        .get('/api/yaml/public/browse?sortBy=views')
+        .expect(200);
+
+      expect(response.body.yamlFiles).toHaveLength(3);
+      // First file should have most views
+      expect(response.body.yamlFiles[0].title).toBe('Another Graph');
+      expect(response.body.yamlFiles[0].views).toBe(50);
+    });
+
+    it('should sort by title alphabetically', async () => {
+      const response = await request(app)
+        .get('/api/yaml/public/browse?sortBy=title')
+        .expect(200);
+
+      expect(response.body.yamlFiles).toHaveLength(3);
+      // Check alphabetical order
+      const titles = response.body.yamlFiles.map(f => f.title);
+      expect(titles[0]).toBe('Another Graph');
+      expect(titles[1]).toBe('Public 1');
+      expect(titles[2]).toBe('Public 2');
+    });
+
+    it('should exclude content and versions fields', async () => {
+      const response = await request(app)
+        .get('/api/yaml/public/browse')
+        .expect(200);
+
+      response.body.yamlFiles.forEach(file => {
+        expect(file.content).toBeUndefined();
+        expect(file.versions).toBeUndefined();
+      });
+    });
+
+    it('should include owner information', async () => {
+      const response = await request(app)
+        .get('/api/yaml/public/browse')
+        .expect(200);
+
+      expect(response.body.yamlFiles[0].owner).toBeDefined();
+      expect(response.body.yamlFiles[0].owner.username).toBe('owner');
+    });
+
+    it('should filter by author username', async () => {
+      const response = await request(app)
+        .get('/api/yaml/public/browse?author=owner')
+        .expect(200);
+
+      expect(response.body.yamlFiles).toHaveLength(3);
+      response.body.yamlFiles.forEach(file => {
+        expect(file.owner.username).toBe('owner');
+      });
+    });
+
+    it('should filter by multiple authors', async () => {
+      // Create a public file by another user
+      const anotherUser = await User.create(await createHashedUserData({
+        username: 'another',
+        email: 'another@test.com'
+      }));
+      await YamlFile.create(createYamlFileData(anotherUser._id, {
+        title: 'Another Public',
+        isPublic: true
+      }));
+
+      const response = await request(app)
+        .get('/api/yaml/public/browse?author=owner,another')
+        .expect(200);
+
+      expect(response.body.yamlFiles).toHaveLength(4);
+      const usernames = response.body.yamlFiles.map(f => f.owner.username);
+      expect(usernames).toContain('owner');
+      expect(usernames).toContain('another');
+    });
+
+    it('should filter by tags', async () => {
+      const response = await request(app)
+        .get('/api/yaml/public/browse?tags=demo')
+        .expect(200);
+
+      expect(response.body.yamlFiles.length).toBeGreaterThanOrEqual(1);
+      response.body.yamlFiles.forEach(file => {
+        expect(file.tags).toContain('demo');
+      });
+    });
+
+    it('should filter by multiple tags', async () => {
+      const response = await request(app)
+        .get('/api/yaml/public/browse?tags=demo,example')
+        .expect(200);
+
+      expect(response.body.yamlFiles.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should combine author and tag filters', async () => {
+      const response = await request(app)
+        .get('/api/yaml/public/browse?author=owner&tags=demo')
+        .expect(200);
+
+      expect(response.body.yamlFiles.length).toBeGreaterThanOrEqual(1);
+      response.body.yamlFiles.forEach(file => {
+        expect(file.owner.username).toBe('owner');
+        expect(file.tags).toContain('demo');
+      });
+    });
+
+    it('should return empty results for non-existent author', async () => {
+      const response = await request(app)
+        .get('/api/yaml/public/browse?author=nonexistentuser')
+        .expect(200);
+
+      expect(response.body.yamlFiles).toHaveLength(0);
+      expect(response.body.pagination.total).toBe(0);
     });
   });
 

@@ -136,7 +136,7 @@ export default function SharedViewerPage({
       {/* Minimal Header for Shared View */}
       <div className="simple-header">
         <div className="header-left">
-          <button className="back-btn" onClick={() => navigate("/")}>
+          <button className="back-btn" onClick={() => navigate(-1)}>
             ← Back
           </button>
           <button className="back-btn" onClick={toggleDarkMode} title="Toggle dark mode">

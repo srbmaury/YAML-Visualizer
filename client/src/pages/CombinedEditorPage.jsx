@@ -527,6 +527,8 @@ export default function CombinedEditorPage({
                     <button onClick={() => { handleSaveGraph(); setOpenMenu(null); }} disabled={!parsedData || !canSaveGraph}>💾 Save</button>
                     <button onClick={() => { setShowSavedGraphs(true); setOpenMenu(null); }}>📚 Saved ({savedGraphs.length + (sharedGraphs?.length || 0)})</button>
                     <button onClick={() => { onShowVersionHistory(); setOpenMenu(null); }} disabled={!isAuthenticated}>📜 History</button>
+                    <div className="dropdown-divider" />
+                    <button onClick={() => { navigate("/explore"); setOpenMenu(null); }}>🌐 Explore Public Graphs</button>
                   </div>
                 )}
               </div>

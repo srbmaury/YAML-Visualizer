@@ -455,6 +455,8 @@ export default function EditorPage({
                       setOpenMenu(null);
                     }}>🔍 Diff Compare</button>
                     <button onClick={() => { navigate("/docs"); setOpenMenu(null); }}>📖 Docs</button>
+                    <div className="dropdown-divider" />
+                    <button onClick={() => { navigate("/explore"); setOpenMenu(null); }}>🌐 Explore Public Graphs</button>
                   </div>
                 )}
               </div>
