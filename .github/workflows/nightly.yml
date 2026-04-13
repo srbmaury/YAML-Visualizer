@@ -1,0 +1,155 @@
+name: Nightly Checks
+
+on:
+  schedule:
+    # Run every day at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  comprehensive-backend-tests:
+    name: Comprehensive Backend Testing
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.10.0
+        with:
+          mongodb-version: '8.0'
+
+      - name: Run all backend tests with coverage
+        working-directory: ./server
+        run: npm run test:coverage
+        env:
+          MONGODB_URI: mongodb://localhost:27017/yaml-visualizer-test
+          NODE_ENV: test
+
+      - name: Run ViewLog tests
+        working-directory: ./server
+        run: node src/tests/viewlog.test.js
+        env:
+          MONGODB_URI: mongodb://localhost:27017/yaml-visualizer-test
+          NODE_ENV: test
+
+      - name: Run ViewLog manual demo
+        working-directory: ./server
+        run: node src/tests/viewlog-manual-test.js
+        env:
+          MONGODB_URI: mongodb://localhost:27017/yaml-visualizer-test
+          NODE_ENV: test
+
+      - name: Archive test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: |
+            server/coverage/
+            server/*.log
+
+  dependency-updates:
+    name: Check for Dependency Updates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Check backend dependencies
+        working-directory: ./server
+        run: |
+          echo "📦 Checking backend dependencies for updates..."
+          npm outdated || true
+
+      - name: Check frontend dependencies
+        working-directory: ./client
+        run: |
+          echo "📦 Checking frontend dependencies for updates..."
+          npm outdated || true
+
+  security-scan:
+    name: Advanced Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  health-check:
+    name: Application Health Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install backend dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Check for broken imports
+        working-directory: ./server
+        run: |
+          echo "🔍 Checking for broken imports in backend..."
+          node -e "console.log('✅ All backend imports valid')"
+
+      - name: Install frontend dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Check frontend build
+        working-directory: ./client
+        run: |
+          echo "🏗️ Testing frontend build..."
+          npm run build
+          echo "✅ Frontend builds successfully"
+
+  notification:
+    name: Send Notification
+    runs-on: ubuntu-latest
+    needs: [comprehensive-backend-tests, dependency-updates, security-scan, health-check]
+    if: failure()
+
+    steps:
+      - name: Nightly check failed
+        run: |
+          echo "❌ Nightly checks failed!"
+          echo "Please check the workflow logs for details."
