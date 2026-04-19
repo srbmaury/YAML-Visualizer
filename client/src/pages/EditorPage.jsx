@@ -154,8 +154,6 @@ export default function EditorPage({
   }, [setYamlText, collabFileId, handleLocalChange]);
 
   const candidateUserIds = [`${user?.id || ''}`, `${user?._id || ''}`].filter(Boolean);
-  const ownerId = `${fileData?.owner?._id || fileData?.owner || ''}`;
-  const isOwner = !!(fileData && candidateUserIds.includes(ownerId));
   const canShare = fileData && fileData.owner && getUserId(user) === `${fileData.owner}`;
   const hasValidFileId = isValidMongoId(fileData?._id);
   const editorReadOnly = (() => {
@@ -455,6 +453,8 @@ export default function EditorPage({
                       setOpenMenu(null);
                     }}>🔍 Diff Compare</button>
                     <button onClick={() => { navigate("/docs"); setOpenMenu(null); }}>📖 Docs</button>
+                    <div className="dropdown-divider" />
+                    <button onClick={() => { navigate("/explore"); setOpenMenu(null); }}>🌐 Explore Public Graphs</button>
                   </div>
                 )}
               </div>

@@ -154,8 +154,7 @@ export default function DiagramPage({ parsedData: propParsedData, treeInfo: prop
           }
         }
         // Don't redirect if no data - just show "No Data Available" state
-      } catch (error) {
-        console.error("Error loading data from localStorage:", error);
+      } catch {
         // Don't redirect on error - just show "No Data Available" state
       } finally {
         setLoading(false);

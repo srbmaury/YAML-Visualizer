@@ -65,8 +65,7 @@ const DiffComparePage = ({ isAuthenticated }) => {
         }));
 
         setAvailableGraphs([...owned, ...shared]);
-      } catch (error) {
-        console.error('Failed to load graphs for diff source selection:', error);
+      } catch {
         setSourceError('Failed to load saved graphs for selection');
       } finally {
         setLoadingGraphs(false);
@@ -151,8 +150,7 @@ const DiffComparePage = ({ isAuthenticated }) => {
     try {
       const response = await apiService.getYamlFile(fileId);
       setPaneYaml(side, response?.yamlFile?.content || '');
-    } catch (error) {
-      console.error('Failed to load selected graph content:', error);
+    } catch {
       setSourceError('Failed to load selected graph content');
     } finally {
       setPaneLoading(side, false);
@@ -166,8 +164,7 @@ const DiffComparePage = ({ isAuthenticated }) => {
     try {
       const response = await apiService.getVersion(fileId, versionNumber);
       setPaneYaml(side, response?.content || '');
-    } catch (error) {
-      console.error('Failed to load selected version content:', error);
+    } catch {
       setSourceError('Failed to load selected version content');
     } finally {
       setPaneLoading(side, false);

@@ -9,7 +9,7 @@ self.onmessage = function(e) {
   try {
     switch (type) {
       case 'PARSE_YAML': {
-        const { yamlText, progressCallback } = payload;
+        const { yamlText } = payload;
 
         // Validate YAML
         const validationResult = validateYAML(yamlText);
@@ -47,7 +47,6 @@ self.onmessage = function(e) {
 
         let nodeCount = 0;
         let maxDepth = 0;
-        let avgBranchingFactor = 0;
 
         const analyze = (node, depth = 0) => {
           nodeCount++;

@@ -4,6 +4,8 @@ import "./styles/SaveGraphModal.css";
 const SaveGraphModal = ({ isOpen, onClose, onSave, existingGraphs }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const [conflictingGraph, setConflictingGraph] = useState(null);
@@ -30,10 +32,30 @@ const SaveGraphModal = ({ isOpen, onClose, onSave, existingGraphs }) => {
     handleSave();
   };
 
+  const handleAddTag = () => {
+    const trimmedTag = tagInput.trim().toLowerCase();
+    if (trimmedTag && !tags.includes(trimmedTag) && tags.length < 10) {
+      setTags([...tags, trimmedTag]);
+      setTagInput("");
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleTagKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
   const handleSave = () => {
     const graphData = {
       title: title.trim(),
       description: description.trim(),
+      tags,
       isPublic,
       isUpdate: conflictingGraph !== null
     };
@@ -49,6 +71,8 @@ const SaveGraphModal = ({ isOpen, onClose, onSave, existingGraphs }) => {
   const handleClose = () => {
     setTitle("");
     setDescription("");
+    setTags([]);
+    setTagInput("");
     setIsPublic(false);
     setShowOverwriteConfirm(false);
     setConflictingGraph(null);
@@ -126,6 +150,54 @@ const SaveGraphModal = ({ isOpen, onClose, onSave, existingGraphs }) => {
                 rows={3}
                 maxLength={500}
               />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="graph-tags">
+                <span className="label-text">Tags</span>
+                <span className="label-desc">Add tags to help others find your graph (max 10)</span>
+              </label>
+              <div className="tags-input-wrapper">
+                <div className="tags-container">
+                  {tags.map((tag, index) => (
+                    <span key={index} className="tag-chip">
+                      {tag}
+                      <button
+                        type="button"
+                        className="tag-remove"
+                        onClick={() => handleRemoveTag(tag)}
+                        aria-label="Remove tag"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    id="graph-tags"
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyPress={handleTagKeyPress}
+                    placeholder={tags.length === 0 ? "e.g., architecture, microservices" : "Add another tag..."}
+                    className="tag-input"
+                    maxLength={20}
+                    disabled={tags.length >= 10}
+                  />
+                </div>
+                {tagInput.trim() && (
+                  <button
+                    type="button"
+                    className="add-tag-btn"
+                    onClick={handleAddTag}
+                    disabled={tags.length >= 10}
+                  >
+                    + Add
+                  </button>
+                )}
+              </div>
+              {tags.length >= 10 && (
+                <span className="tag-limit-message">Maximum 10 tags reached</span>
+              )}
             </div>
 
             <div className="form-group checkbox-group">

@@ -225,6 +225,17 @@ class ApiService {
   async getFileCollaborators(id) {
     return this.request(`/yaml/${id}/collaborators`);
   }
+
+  /**
+   * Get public YAML files for browsing/discovery
+   * @param {object} params - Query parameters { page, limit, search, sortBy }
+   * @returns {Promise} Response with yamlFiles array and pagination info
+   */
+  async getPublicYamlFiles(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = queryString ? `/yaml/public/browse?${queryString}` : '/yaml/public/browse';
+    return this.request(endpoint);
+  }
 }
 
 // Create singleton instance

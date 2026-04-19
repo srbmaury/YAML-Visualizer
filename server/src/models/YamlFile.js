@@ -86,6 +86,7 @@ const yamlFileSchema = new mongoose.Schema({
 // Index for efficient queries
 yamlFileSchema.index({ owner: 1, createdAt: -1 });
 yamlFileSchema.index({ isPublic: 1, createdAt: -1 });
+yamlFileSchema.index({ tags: 1, isPublic: 1 });
 // shareId already has unique: true which creates index
 
 // Pre-save middleware to update metadata

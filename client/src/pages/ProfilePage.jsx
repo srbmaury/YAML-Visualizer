@@ -153,11 +153,12 @@ export default function ProfilePage() {
   const handleLoadFile = async (file) => {
     try {
       // Fetch the full file content
-      const fileData = await apiService.getYamlFile(file._id);
+      const response = await apiService.getYamlFile(file._id);
+      const fileData = response.yamlFile;
 
-      // Navigate to the editor with the file content and ID
-      // We'll pass the content via state so it can be loaded into the editor
-      navigate('/', {
+      // Navigate to the editor with the file ID in the URL
+      // The success toast will be shown by App.jsx's useEffect
+      navigate(`/editor/${file._id}`, {
         state: {
           yamlContent: fileData.content,
           fileName: fileData.title,
@@ -165,8 +166,6 @@ export default function ProfilePage() {
           loadFile: true
         }
       });
-
-      showSuccess(`Loaded "${file.title}" into editor`);
     } catch (error) {
       showError(error.message || 'Failed to load file');
     }
@@ -565,19 +564,53 @@ export default function ProfilePage() {
                       <div
                         key={file._id}
                         className="file-item clickable"
-                        onClick={() => handleLoadFile(file)}
-                        title="Click to open in editor"
                       >
-                        <div className="file-info">
+                        <div
+                          className="file-info"
+                          onClick={() => handleLoadFile(file)}
+                          title="Click to open in editor"
+                        >
                           <div className="file-title">{file.title}</div>
+                          {file.description && (
+                            <div className="file-description">{file.description}</div>
+                          )}
+                          {file.tags && file.tags.length > 0 && (
+                            <div className="file-tags">
+                              {file.tags.map((tag, index) => (
+                                <span key={index} className="file-tag">{tag}</span>
+                              ))}
+                            </div>
+                          )}
                           <div className="file-meta">
-                            <span className="file-date">Created {formatDate(file.createdAt)}</span>
-                            <span className={`file-visibility ${file.isPublic ? 'public' : 'private'}`}>
-                              {file.isPublic ? 'Public' : 'Private'}
-                            </span>
-                            <span className="file-views">{formatCompactNumber(file.views)} views</span>
+                            <div className="file-meta-left">
+                              <span className="file-date">Created {formatDate(file.createdAt)}</span>
+                            </div>
+                            <div className="file-meta-right">
+                              <span className={`file-visibility ${file.isPublic ? 'public' : 'private'}`}>
+                                {file.isPublic ? '🌐 Public' : '🔒 Private'}
+                              </span>
+                              <span className="file-views">👁️ {formatCompactNumber(file.views)} views</span>
+                            </div>
                           </div>
                         </div>
+                        <button
+                          className="file-delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Delete "${file.title}"? This cannot be undone.`)) {
+                              apiService.deleteYamlFile(file._id)
+                                .then(() => {
+                                  showSuccess('File deleted successfully');
+                                  loadProfileData();
+                                  loadDashboardData();
+                                })
+                                .catch(err => showError('Failed to delete file: ' + err.message));
+                            }
+                          }}
+                          title="Delete file"
+                        >
+                          🗑️
+                        </button>
                       </div>
                     ))}
                     {renderPagination(profileFilesPage, profileFilesTotalPages, setProfileFilesPage)}
@@ -652,20 +685,53 @@ export default function ProfilePage() {
                       <div
                         key={file._id}
                         className="file-item clickable"
-                        onClick={() => handleLoadFile(file)}
-                        title="Click to open in editor"
                       >
-                        <div className="file-info">
+                        <div
+                          className="file-info"
+                          onClick={() => handleLoadFile(file)}
+                          title="Click to open in editor"
+                        >
                           <div className="file-title">{file.title}</div>
+                          {file.description && (
+                            <div className="file-description">{file.description}</div>
+                          )}
+                          {file.tags && file.tags.length > 0 && (
+                            <div className="file-tags">
+                              {file.tags.map((tag, index) => (
+                                <span key={index} className="file-tag">{tag}</span>
+                              ))}
+                            </div>
+                          )}
                           <div className="file-meta">
-                            {file.description && <span className="file-desc">{file.description}</span>}
-                            <span className="file-date">Updated {formatDate(file.updatedAt)}</span>
-                            <span className={`file-visibility ${file.isPublic ? 'public' : 'private'}`}>
-                              {file.isPublic ? '🌐 Public' : '🔒 Private'}
-                            </span>
-                            <span className="file-views">👁️ {file.views} views</span>
+                            <div className="file-meta-left">
+                              <span className="file-date">Updated {formatDate(file.updatedAt)}</span>
+                            </div>
+                            <div className="file-meta-right">
+                              <span className={`file-visibility ${file.isPublic ? 'public' : 'private'}`}>
+                                {file.isPublic ? '🌐 Public' : '🔒 Private'}
+                              </span>
+                              <span className="file-views">👁️ {file.views} views</span>
+                            </div>
                           </div>
                         </div>
+                        <button
+                          className="file-delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Delete "${file.title}"? This cannot be undone.`)) {
+                              apiService.deleteYamlFile(file._id)
+                                .then(() => {
+                                  showSuccess('File deleted successfully');
+                                  loadProfileData();
+                                  loadDashboardData();
+                                })
+                                .catch(err => showError('Failed to delete file: ' + err.message));
+                            }
+                          }}
+                          title="Delete file"
+                        >
+                          🗑️
+                        </button>
                       </div>
                     ))}
                     {renderPagination(recentFilesPage, recentFilesTotalPages, setRecentFilesPage)}
@@ -687,20 +753,53 @@ export default function ProfilePage() {
                       <div
                         key={file._id}
                         className="file-item clickable"
-                        onClick={() => handleLoadFile(file)}
-                        title="Click to open in editor"
                       >
-                        <div className="file-info">
+                        <div
+                          className="file-info"
+                          onClick={() => handleLoadFile(file)}
+                          title="Click to open in editor"
+                        >
                           <div className="file-title">{file.title}</div>
+                          {file.description && (
+                            <div className="file-description">{file.description}</div>
+                          )}
+                          {file.tags && file.tags.length > 0 && (
+                            <div className="file-tags">
+                              {file.tags.map((tag, index) => (
+                                <span key={index} className="file-tag">{tag}</span>
+                              ))}
+                            </div>
+                          )}
                           <div className="file-meta">
-                            {file.description && <span className="file-desc">{file.description}</span>}
-                            <span className="file-date">Created {formatDate(file.createdAt)}</span>
-                            <span className={`file-visibility ${file.isPublic ? 'public' : 'private'}`}>
-                              {file.isPublic ? '🌐 Public' : '🔒 Private'}
-                            </span>
-                            <span className="file-views">👁️ {file.views} views</span>
+                            <div className="file-meta-left">
+                              <span className="file-date">Created {formatDate(file.createdAt)}</span>
+                            </div>
+                            <div className="file-meta-right">
+                              <span className={`file-visibility ${file.isPublic ? 'public' : 'private'}`}>
+                                {file.isPublic ? '🌐 Public' : '🔒 Private'}
+                              </span>
+                              <span className="file-views">👁️ {file.views} views</span>
+                            </div>
                           </div>
                         </div>
+                        <button
+                          className="file-delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Delete "${file.title}"? This cannot be undone.`)) {
+                              apiService.deleteYamlFile(file._id)
+                                .then(() => {
+                                  showSuccess('File deleted successfully');
+                                  loadProfileData();
+                                  loadDashboardData();
+                                })
+                                .catch(err => showError('Failed to delete file: ' + err.message));
+                            }
+                          }}
+                          title="Delete file"
+                        >
+                          🗑️
+                        </button>
                       </div>
                     ))}
                     {renderPagination(popularFilesPage, popularFilesTotalPages, setPopularFilesPage)}

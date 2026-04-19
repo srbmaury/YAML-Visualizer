@@ -388,3 +388,168 @@
     border-top-color: #45475a;
   }
 }
+
+/* ===== Tags Input ===== */
+.tags-input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.tags-container {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  min-height: 42px;
+  transition: border-color 0.2s ease;
+  background: white;
+}
+
+.tags-container:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="dark"] .tags-container {
+  background: #181825;
+  border-color: #45475a;
+}
+
+[data-theme="dark"] .tags-container:focus-within {
+  border-color: #89b4fa;
+  box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.15);
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid #93c5fd;
+}
+
+[data-theme="dark"] .tag-chip {
+  background: #1e3a8a;
+  color: #bfdbfe;
+  border-color: #3b82f6;
+}
+
+.tag-remove {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+  line-height: 1;
+}
+
+.tag-remove:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .tag-remove:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tag-input {
+  flex: 1;
+  min-width: 120px;
+  border: none !important;
+  padding: 4px !important;
+  font-size: 0.95rem;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tag-input:focus {
+  outline: none;
+  box-shadow: none !important;
+}
+
+.tag-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+[data-theme="dark"] .tag-input {
+  color: #cdd6f4;
+}
+
+[data-theme="dark"] .tag-input::placeholder {
+  color: #6c7086;
+}
+
+.add-tag-btn {
+  padding: 8px 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.add-tag-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.add-tag-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+[data-theme="dark"] .add-tag-btn {
+  background: #89b4fa;
+  color: #1e1e2e;
+}
+
+[data-theme="dark"] .add-tag-btn:hover:not(:disabled) {
+  background: #a5c8ff;
+}
+
+.tag-limit-message {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: #f59e0b;
+  font-style: italic;
+}
+
+[data-theme="dark"] .tag-limit-message {
+  color: #fbbf24;
+}
+
+/* Mobile responsiveness for tags */
+@media (max-width: 640px) {
+  .tags-input-wrapper {
+    flex-direction: column;
+  }
+
+  .add-tag-btn {
+    width: 100%;
+  }
+
+  .tag-input {
+    min-width: 100px;
+  }
+}

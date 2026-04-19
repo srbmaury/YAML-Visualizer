@@ -1,11 +1,43 @@
 import { validationResult } from 'express-validator';
 import { nanoid } from 'nanoid';
+import crypto from 'crypto';
 import YamlFile from '../models/YamlFile.js';
 import VersionHistory from '../models/VersionHistory.js';
 import GithubIntegration from '../models/GithubIntegration.js';
 import User from '../models/User.js';
+import ViewLog from '../models/ViewLog.js';
 import { calculateChangeStats, generateChangeSummary, calculateDelta, shouldCreateSnapshot } from '../services/deltaService.js';
 import { getCanonicalYamlContentForFile } from './versionController.js';
+import { YAML_LIMITS, SHARE, PAGINATION, ERRORS } from '../config/constants.js';
+
+/**
+ * Track a view for a YAML file with deduplication
+ * Only counts unique views per user/session within 24 hours
+ */
+const trackFileView = async (yamlFile, req) => {
+  try {
+    const userId = req.user?._id;
+    const sessionId = req.sessionID || req.headers['x-session-id'] || req.cookies?.sessionId;
+
+    // Create IP hash for additional deduplication (privacy-friendly)
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    const ipHash = ipAddress ? crypto.createHash('sha256').update(ipAddress).digest('hex').substring(0, 16) : null;
+
+    // Check if this view should be counted (deduplication within 24 hours)
+    const shouldCount = await ViewLog.shouldCountView(yamlFile._id, userId, sessionId);
+
+    if (shouldCount) {
+      // Log the view
+      await ViewLog.logView(yamlFile._id, userId, sessionId, ipHash);
+
+      // Increment the counter on the file
+      await yamlFile.incrementViews();
+    }
+  } catch (error) {
+    // Non-blocking: log error but don't fail the request
+    console.error('Error tracking view:', error);
+  }
+};
 
 export const createYamlFile = async (req, res) => {
   try {
@@ -22,7 +54,7 @@ export const createYamlFile = async (req, res) => {
       description,
       owner: req.user._id,
       isPublic,
-      tags: tags.slice(0, 10), // Limit to 10 tags
+      tags: tags.slice(0, YAML_LIMITS.MAX_TAGS),
       metadata,
       currentVersion: 1
     });
@@ -69,14 +101,13 @@ export const createYamlFile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Save YAML error:', error);
     res.status(500).json({ error: 'Server error while saving YAML file' });
   }
 };
 
 export const getSharedWithMeYamlFiles = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
+    const { page = PAGINATION.DEFAULT_PAGE, limit = PAGINATION.DEFAULT_LIMIT, search } = req.query;
     const skip = (page - 1) * limit;
     const userId = req.user._id.toString();
     const permissionKey = `permissions.${userId}`;
@@ -105,7 +136,7 @@ export const getSharedWithMeYamlFiles = async (req, res) => {
       const fileObj = file.toObject();
       fileObj.accessLevel = file.permissions?.get(userId) || file.permissions?.[userId] || 'view';
       if (fileObj.content) {
-        fileObj.contentPreview = fileObj.content.substring(0, 200);
+        fileObj.contentPreview = fileObj.content.substring(0, YAML_LIMITS.CONTENT_PREVIEW_LENGTH);
       }
       return fileObj;
     });
@@ -122,14 +153,13 @@ export const getSharedWithMeYamlFiles = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get shared-with-me YAML files error:', error);
     res.status(500).json({ error: 'Server error while fetching shared YAML files' });
   }
 };
 
 export const getUserYamlFiles = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
+    const { page = PAGINATION.DEFAULT_PAGE, limit = PAGINATION.DEFAULT_LIMIT, search } = req.query;
     const skip = (page - 1) * limit;
 
     let query = { owner: req.user._id };
@@ -148,11 +178,11 @@ export const getUserYamlFiles = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
-    // Add content preview to each file (first 200 characters)
+    // Add content preview to each file
     const filesWithPreview = yamlFiles.map(file => {
       const fileObj = file.toObject();
       if (fileObj.content) {
-        fileObj.contentPreview = fileObj.content.substring(0, 200);
+        fileObj.contentPreview = fileObj.content.substring(0, YAML_LIMITS.CONTENT_PREVIEW_LENGTH);
         // Keep full content for now, frontend can handle truncation
         // delete fileObj.content; // Remove full content to reduce payload
       }
@@ -171,7 +201,6 @@ export const getUserYamlFiles = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get YAML files error:', error);
     res.status(500).json({ error: 'Server error while fetching YAML files' });
   }
 };
@@ -186,35 +215,19 @@ export const getYamlFileById = async (req, res) => {
       });
     }
 
-    // Additional check for valid ObjectId format
-    const { id } = req.params;
-    if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({
-        error: 'Invalid file ID format. Must be a valid MongoDB ObjectId.'
-      });
-    }
+    // File and permission already checked by requireFileAccess middleware
+    const yamlFile = req.yamlFile;
 
-    const yamlFile = await YamlFile.findById(id);
-    if (!yamlFile) {
-      return res.status(404).json({
-        error: 'YAML file not found or you do not have permission to access it.'
-      });
-    }
-    // Only owner or users with view/edit permission can access
-    if (
-      yamlFile.owner.toString() !== req.user._id.toString() &&
-      (!yamlFile.permissions?.get(req.user._id.toString()) || yamlFile.permissions.get(req.user._id.toString()) === 'no-access')
-    ) {
-      return res.status(403).json({ error: 'Access denied. You do not have permission to view this file.' });
-    }
+    // Track view with deduplication (non-blocking)
+    trackFileView(yamlFile, req);
+
     const yamlOut = yamlFile.toObject();
-    const canonical = await getCanonicalYamlContentForFile(id);
+    const canonical = await getCanonicalYamlContentForFile(yamlFile._id);
     if (canonical != null) {
       yamlOut.content = canonical;
     }
     res.json({ yamlFile: yamlOut });
   } catch (error) {
-    console.error('Get YAML file error:', error);
 
     // Handle specific MongoDB errors
     if (error.name === 'CastError' && error.kind === 'ObjectId') {
@@ -242,10 +255,10 @@ export const getSharedYamlFile = async (req, res) => {
 
     const { shareId } = req.params;
 
-    // Validate shareId format (should be 10 characters)
-    if (!shareId || shareId.length !== 10) {
+    // Validate shareId format
+    if (!shareId || shareId.length !== SHARE.ID_LENGTH) {
       return res.status(400).json({
-        error: 'Invalid share ID format. Must be a 10-character string.'
+        error: ERRORS.INVALID_SHARE_ID
       });
     }
 
@@ -267,7 +280,10 @@ export const getSharedYamlFile = async (req, res) => {
         error: 'Access denied. This file is private and you do not have permission to access it.'
       });
     }
-    yamlFile.incrementViews().catch(console.error);
+
+    // Track view with deduplication (non-blocking)
+    trackFileView(yamlFile, req);
+
     const yamlOut = yamlFile.toObject();
     const canonical = await getCanonicalYamlContentForFile(yamlFile._id);
     if (canonical != null) {
@@ -275,7 +291,6 @@ export const getSharedYamlFile = async (req, res) => {
     }
     res.json({ yamlFile: yamlOut });
   } catch (error) {
-    console.error('Get shared YAML file error:', error);
     res.status(500).json({
       error: 'Server error while fetching shared file',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -292,17 +307,8 @@ export const updateYamlFile = async (req, res) => {
 
     const { title, content, description, isPublic, tags, metadata, versionDescription } = req.body;
 
-    const yamlFile = await YamlFile.findById(req.params.id);
-    if (!yamlFile) {
-      return res.status(404).json({ error: 'YAML file not found' });
-    }
-    // Only owner or users with edit permission can update
-    if (
-      yamlFile.owner.toString() !== req.user._id.toString() &&
-      (!yamlFile.permissions?.get(req.user._id.toString()) || yamlFile.permissions.get(req.user._id.toString()) !== 'edit')
-    ) {
-      return res.status(403).json({ error: 'Access denied. You do not have permission to edit this file.' });
-    }
+    // File and permission already checked by requireFileAccess('edit') middleware
+    const yamlFile = req.yamlFile;
     // If content is being updated, create a new version using the new version history system
     const head = await getCanonicalYamlContentForFile(yamlFile._id);
     const headStr = head ?? '';
@@ -342,7 +348,7 @@ export const updateYamlFile = async (req, res) => {
     if (title) yamlFile.title = title;
     if (description !== undefined) yamlFile.description = description;
     if (isPublic !== undefined) yamlFile.isPublic = isPublic;
-    if (tags) yamlFile.tags = tags.slice(0, 10);
+    if (tags) yamlFile.tags = tags.slice(0, YAML_LIMITS.MAX_TAGS);
     if (metadata) yamlFile.metadata = { ...yamlFile.metadata, ...metadata };
     await yamlFile.save();
     res.json({
@@ -358,7 +364,6 @@ export const updateYamlFile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Update YAML file error:', error);
     res.status(500).json({ error: 'Server error while updating YAML file' });
   }
 };
@@ -370,18 +375,9 @@ export const deleteYamlFile = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const yamlFile = await YamlFile.findOne({
-      _id: req.params.id,
-      owner: req.user._id
-    });
-
-    if (!yamlFile) {
-      return res.status(404).json({ error: 'YAML file not found' });
-    }
-
-    const fileId = req.params.id;
-
-    console.log(`🗑️  Deleting YAML file: ${fileId}`);
+    // Ownership already checked by requireOwnership() middleware
+    const yamlFile = req.yamlFile;
+    const fileId = yamlFile._id;
 
     // Cascade delete: Remove all related data
     const [versionsDeleted, integrationsDeleted] = await Promise.all([
@@ -401,8 +397,6 @@ export const deleteYamlFile = async (req, res) => {
     // Delete the YAML file itself
     await YamlFile.findByIdAndDelete(fileId);
 
-    console.log(`✅ Deleted: ${versionsDeleted.deletedCount} versions, ${integrationsDeleted.deletedCount} integrations`);
-
     res.json({
       message: 'YAML file deleted successfully',
       deleted: {
@@ -412,24 +406,54 @@ export const deleteYamlFile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Delete YAML file error:', error);
     res.status(500).json({ error: 'Server error while deleting YAML file' });
   }
 };
 
 export const getPublicYamlFiles = async (req, res) => {
   try {
-    const { page = 1, limit = 20, search, sortBy = 'createdAt' } = req.query;
+    const { page = PAGINATION.DEFAULT_PAGE, limit = PAGINATION.DEFAULT_LIMIT_LARGE, search, sortBy = 'createdAt', author, tags } = req.query;
     const skip = (page - 1) * limit;
 
     let query = { isPublic: true };
 
+    // Handle search
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
         { tags: { $in: [new RegExp(search, 'i')] } }
       ];
+    }
+
+    // Handle author filter - need to first get user IDs, then filter by owner
+    if (author) {
+      const authors = author.split(',').map(a => a.trim());
+      const users = await User.find({
+        username: { $in: authors.map(a => new RegExp(`^${a}$`, 'i')) }
+      }).select('_id');
+
+      if (users.length > 0) {
+        query.owner = { $in: users.map(u => u._id) };
+      } else {
+        // No matching users, return empty results
+        return res.json({
+          yamlFiles: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            pages: 0
+          }
+        });
+      }
+    }
+
+    // Handle tags filter
+    if (tags) {
+      const tagList = tags.split(',').map(t => t.trim());
+      // Match files that have at least one of the specified tags
+      query.tags = { $in: tagList.map(t => new RegExp(`^${t}$`, 'i')) };
     }
 
     const sortOptions = {
@@ -457,7 +481,6 @@ export const getPublicYamlFiles = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Browse public YAML files error:', error);
     res.status(500).json({ error: 'Server error while browsing public files' });
   }
 };
@@ -469,12 +492,10 @@ export const setYamlFilePermissions = async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    const { id } = req.params;
+
     const { permissions } = req.body;
-    const yamlFile = await YamlFile.findOne({ _id: id, owner: req.user._id });
-    if (!yamlFile) {
-      return res.status(404).json({ error: 'YAML file not found or you do not have permission.' });
-    }
+    // Ownership already checked by requireOwnership() middleware
+    const yamlFile = req.yamlFile;
     // Validate permissions object
     for (const [userId, perm] of Object.entries(permissions)) {
       if (!['no-access', 'view', 'edit'].includes(perm)) {
@@ -485,7 +506,6 @@ export const setYamlFilePermissions = async (req, res) => {
     await yamlFile.save();
     res.json({ message: 'Permissions updated', permissions: yamlFile.permissions });
   } catch (error) {
-    console.error('Set permissions error:', error);
     res.status(500).json({ error: 'Server error while setting permissions' });
   }
 };
@@ -493,11 +513,8 @@ export const setYamlFilePermissions = async (req, res) => {
 // Get collaborators for a YAML file (users with permissions)
 export const getFileCollaborators = async (req, res) => {
   try {
-    const { id } = req.params;
-    const yamlFile = await YamlFile.findOne({ _id: id, owner: req.user._id });
-    if (!yamlFile) {
-      return res.status(404).json({ error: 'YAML file not found or you do not have permission.' });
-    }
+    // Ownership already checked by requireOwnership() middleware
+    const yamlFile = req.yamlFile;
     const permissionsMap = yamlFile.permissions || new Map();
     const userIds = [];
     const permEntries = {};
@@ -516,7 +533,6 @@ export const getFileCollaborators = async (req, res) => {
     }));
     res.json({ collaborators });
   } catch (error) {
-    console.error('Get collaborators error:', error);
     res.status(500).json({ error: 'Server error while fetching collaborators' });
   }
 };
@@ -528,19 +544,15 @@ export const toggleYamlFileSharing = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { id } = req.params;
     const { isPublic } = req.body;
-
-    const yamlFile = await YamlFile.findOne({ _id: id, owner: req.user._id });
-    if (!yamlFile) {
-      return res.status(404).json({ error: 'YAML file not found or you do not have permission.' });
-    }
+    // Ownership already checked by requireOwnership() middleware
+    const yamlFile = req.yamlFile;
 
     yamlFile.isPublic = isPublic;
     if (isPublic) {
       // Ensure shareId exists
-      if (!yamlFile.shareId || yamlFile.shareId.length !== 10) {
-        yamlFile.shareId = nanoid(10);
+      if (!yamlFile.shareId || yamlFile.shareId.length !== SHARE.ID_LENGTH) {
+        yamlFile.shareId = nanoid(SHARE.ID_LENGTH);
       }
     }
     await yamlFile.save();
@@ -558,7 +570,35 @@ export const toggleYamlFileSharing = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Toggle sharing error:', error);
     res.status(500).json({ error: 'Server error while toggling sharing status' });
+  }
+};
+
+// Get view statistics/analytics for a file (owner only)
+export const getFileViewStats = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    // Ownership already checked by requireOwnership() middleware
+    const yamlFile = req.yamlFile;
+    const { days = 30 } = req.query;
+
+    // Get view statistics
+    const stats = await ViewLog.getFileStats(yamlFile._id, parseInt(days));
+
+    // Add the file's total view count from the counter
+    const response = {
+      ...stats,
+      totalViewsAllTime: yamlFile.views || 0,
+      fileId: yamlFile._id,
+      fileTitle: yamlFile.title
+    };
+
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error while fetching view statistics' });
   }
 };

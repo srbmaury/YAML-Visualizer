@@ -4,6 +4,8 @@ Convert YAML structures into interactive tree diagrams. Built with React, Node.j
 
 ![React](https://img.shields.io/badge/React-19.1.1-blue) ![Node.js](https://img.shields.io/badge/Node.js-18+-green) ![MongoDB](https://img.shields.io/badge/MongoDB-8.0+-brightgreen) ![D3.js](https://img.shields.io/badge/D3.js-7.9.0-orange) ![Express](https://img.shields.io/badge/Express-4.18+-red) ![OpenAI](https://img.shields.io/badge/OpenAI-6.7.0-purple) ![Vite](https://img.shields.io/badge/Vite-7.1.7-646CFF)
 
+[![CI](https://github.com/srbmaury/Data-Visualizer/actions/workflows/ci.yml/badge.svg)](https://github.com/srbmaury/Data-Visualizer/actions/workflows/ci.yml) [![CodeQL](https://github.com/srbmaury/Data-Visualizer/actions/workflows/codeql.yml/badge.svg)](https://github.com/srbmaury/Data-Visualizer/actions/workflows/codeql.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **Live Demo**: [yaml-visualizer.netlify.app](https://yaml-visualizer.netlify.app) | **Project Structure**: [View as Diagram](https://yaml-visualizer.netlify.app/shared/cLqNv1m5bx)
 
 ---
@@ -119,6 +121,9 @@ Toggle light/dark themes from any page. All components and diagrams are fully th
 ### 📈 Analytics
 - Node count, depth, and complexity metrics with YAML quality scoring
 - Personal dashboard with usage statistics
+- **Smart View Tracking**: Deduplicates views within 24 hours (same user/session counted once)
+- **View Analytics**: Total views, unique users, unique sessions, and viewing trends
+- **Privacy-Friendly**: IP addresses are hashed, auto-deleted after 30 days
 
 ---
 
@@ -133,7 +138,7 @@ Toggle light/dark themes from any page. All components and diagrams are fully th
 
 ```bash
 # Clone the repository
-git clone https://github.com/srbmaury-team/Data-Visualizer.git
+git clone https://github.com/srbmaury/Data-Visualizer.git
 cd Data-Visualizer
 
 # Install dependencies
@@ -241,6 +246,7 @@ VITE_API_URL=http://localhost:5000
 - `POST /api/yaml/:id/share` - Generate or toggle public share link
 - `POST /api/yaml/:id/permissions` - Set per-user view/edit permissions
 - `GET /api/yaml/:id/collaborators` - List existing collaborators
+- `GET /api/yaml/:id/stats` - Get view statistics/analytics (owner only)
 
 ### Versioning
 - `POST /api/files/:id/versions` - Create a new file version
@@ -419,6 +425,99 @@ We welcome contributions that enhance the YAML visualization experience:
 - Ensure mobile responsiveness
 - Add tests for new features
 
+### 🧪 Testing
+
+Comprehensive test suite for the backend using **Jest** and **Supertest**.
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run specific test file
+npm test -- yaml.test.js
+```
+
+**Run `npm run test:coverage` to see detailed coverage report**
+
+#### View Tracking Tests
+
+Test the view deduplication system (prevents same user from inflating view counts):
+
+```bash
+# Comprehensive unit tests for ViewLog model
+node server/src/tests/viewlog.test.js
+
+# Interactive demo showing view tracking in action
+node server/src/tests/viewlog-manual-test.js
+```
+
+**Resources:**
+- [Jest Documentation](https://jestjs.io/)
+- [Supertest Documentation](https://github.com/visionmedia/supertest)
+- [MongoDB Memory Server](https://github.com/nodkz/mongodb-memory-server)
+
+---
+
+## 🔄 CI/CD & GitHub Workflows
+
+Automated checks run on every push and pull request to ensure code quality and reliability.
+
+### Available Workflows
+
+**[CI Pipeline](.github/workflows/ci.yml)** - Main continuous integration
+- ✅ Backend tests with Jest (Node 18.x & 20.x)
+- ✅ Backend test coverage reporting
+- ✅ Frontend linting with ESLint
+- ✅ Frontend build validation
+- ✅ Security & dependency audit
+- ✅ View tracking system tests
+
+**[Pull Request Checks](.github/workflows/pr-checks.yml)** - PR-specific validations
+- 📊 PR size and change statistics
+- 🔍 Code quality checks (console.log detection, TODOs)
+- 🔐 Secret scanning
+- 💬 Automated PR comment with check summary
+
+**[Nightly Checks](.github/workflows/nightly.yml)** - Comprehensive daily testing
+- 🌙 Runs daily at 2 AM UTC
+- 📦 Dependency update checks
+- 🔒 Advanced security scanning with Trivy
+- 🏥 Application health checks
+- 📈 Coverage reports
+
+**[CodeQL Analysis](.github/workflows/codeql.yml)** - Security scanning
+- 🔍 Weekly code security analysis
+- 🛡️ Vulnerability detection
+- 📝 Security advisory reports
+
+### Automated Dependency Management
+
+**Dependabot** automatically checks for dependency updates weekly:
+- Backend npm packages (Monday)
+- Frontend npm packages (Monday)  
+- GitHub Actions versions
+
+### Status Checks Required for Merge
+
+All pull requests must pass:
+1. ✅ Backend tests (Node 18 & 20)
+2. ✅ Frontend linting & build
+3. ✅ Security audit
+4. ✅ View tracking tests
+5. ✅ Code quality checks
+
+### Badges
+
+Current build status: [![CI](https://github.com/srbmaury/Data-Visualizer/actions/workflows/ci.yml/badge.svg)](https://github.com/srbmaury/Data-Visualizer/actions/workflows/ci.yml)
+
+Security scan: [![CodeQL](https://github.com/srbmaury/Data-Visualizer/actions/workflows/codeql.yml/badge.svg)](https://github.com/srbmaury/Data-Visualizer/actions/workflows/codeql.yml)
+
 ---
 
 ## 📄 License
@@ -440,8 +539,8 @@ This project is open source and available under the [MIT License](LICENSE).
 ## 👨‍💻 Author
 
 **Saurabh Maurya**
-- GitHub: [@srbmaury-team](https://github.com/srbmaury-team)
-- Project: [Data-Visualizer](https://github.com/srbmaury-team/Data-Visualizer)
+- GitHub: [@srbmaury](https://github.com/srbmaury)
+- Project: [Data-Visualizer](https://github.com/srbmaury/Data-Visualizer)
 
 ---
 

@@ -16,6 +16,7 @@ import SharedViewerWrapper from "./pages/SharedViewerWrapper";
 import EmbedViewerPage from "./pages/EmbedViewerPage";
 import DocsPage from "./pages/DocsPage";
 import ProfilePage from "./pages/ProfilePage";
+import PublicGraphsPage from "./pages/PublicGraphsPage";
 import AuthModal from "./components/AuthModal";
 import apiService from "./services/apiService";
 import yaml from "js-yaml";
@@ -78,8 +79,8 @@ function AppContent() {
 
         return data.yamlText || DEFAULT_YAML;
       }
-    } catch (e) {
-      console.error("Error loading from localStorage:", e);
+    } catch {
+      // Ignore localStorage errors, fallback to default
     }
     return DEFAULT_YAML;
   });
@@ -154,7 +155,7 @@ function AppContent() {
     } catch (e) {
       console.error("Error saving to localStorage:", e);
       if (e.name === "QuotaExceededError") {
-        console.warn("localStorage quota exceeded");
+        // Storage quota exceeded - ignore and continue
       }
     }
   }, [yamlText]);
@@ -230,7 +231,6 @@ function AppContent() {
         navigate("/diagram");
       }
     } catch (e) {
-      console.error("Parsing error:", e);
       const errorMessage = "Invalid YAML: " + e.message;
       setError(errorMessage);
       showError(errorMessage);
@@ -325,7 +325,8 @@ function AppContent() {
                   title: graphData.title,
                   yamlContent: yamlText,
                   description: graphData.description,
-                  isPublic: graphData.isPublic
+                  isPublic: graphData.isPublic,
+                  tags: graphData.tags || []
                 });
 
                 if (result && result.id) {
@@ -347,7 +348,8 @@ function AppContent() {
               title: graphData.title,
               yamlContent: yamlText,
               description: graphData.description,
-              isPublic: graphData.isPublic
+              isPublic: graphData.isPublic,
+              tags: graphData.tags || []
             });
 
             if (copyResult && copyResult.id) {
@@ -369,7 +371,8 @@ function AppContent() {
           title: graphData.title,
           yamlContent: yamlText,
           description: graphData.description,
-          isPublic: graphData.isPublic
+          isPublic: graphData.isPublic,
+          tags: graphData.tags || []
         });
 
         // Set the current file ID for version history
@@ -389,7 +392,8 @@ function AppContent() {
           title: graphData.title,
           yamlContent: yamlText,
           description: graphData.description,
-          isPublic: graphData.isPublic
+          isPublic: graphData.isPublic,
+          tags: graphData.tags || []
         });
 
         // Set the current file ID for version history
@@ -506,7 +510,8 @@ function AppContent() {
         title: graph.title,
         yamlContent: yamlText,
         description: graph.description,
-        isPublic: graph.isPublic
+        isPublic: graph.isPublic,
+        tags: graph.tags || []
       });
 
       showSuccess(`Graph "${graph.title}" updated successfully!`);
@@ -584,7 +589,6 @@ function AppContent() {
         }
       }
     } catch (e) {
-      console.error("Parsing error after import:", e);
       setError("Imported YAML has parsing issues: " + e.message);
     }
   };
@@ -726,6 +730,7 @@ function AppContent() {
         <Route path="/embed/:shareId" element={<EmbedViewerPage />} />
         <Route path="/docs" element={<DocsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/explore" element={<PublicGraphsPage />} />
       </Routes>
 
       <Suspense fallback={null}>
