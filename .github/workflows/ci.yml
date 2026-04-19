@@ -107,7 +107,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: server/package-lock.json
       - name: Start MongoDB
-        uses: supercharge/mongodb-github-action@1.10.0
+        uses: supercharge/mongodb-github-action@1.12.1
         with:
           mongodb-version: '8.0'
       - name: Run ViewLog Tests
