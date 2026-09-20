@@ -4,7 +4,7 @@ Convert YAML structures into interactive tree diagrams. Built with React, Node.j
 
 ![React](https://img.shields.io/badge/React-19.1.1-blue) ![Node.js](https://img.shields.io/badge/Node.js-18+-green) ![MongoDB](https://img.shields.io/badge/MongoDB-8.0+-brightgreen) ![D3.js](https://img.shields.io/badge/D3.js-7.9.0-orange) ![Express](https://img.shields.io/badge/Express-4.18+-red) ![OpenAI](https://img.shields.io/badge/OpenAI-6.7.0-purple) ![Vite](https://img.shields.io/badge/Vite-7.1.7-646CFF)
 
-[![CI](https://github.com/srbmaury/Data-Visualizer/actions/workflows/ci.yml/badge.svg)](https://github.com/srbmaury/Data-Visualizer/actions/workflows/ci.yml) [![CodeQL](https://github.com/srbmaury/Data-Visualizer/actions/workflows/codeql.yml/badge.svg)](https://github.com/srbmaury/Data-Visualizer/actions/workflows/codeql.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/srbmaury/YAML-Visualizer/actions/workflows/ci.yml/badge.svg)](https://github.com/srbmaury/YAML-Visualizer/actions/workflows/ci.yml) [![CodeQL](https://github.com/srbmaury/YAML-Visualizer/actions/workflows/codeql.yml/badge.svg)](https://github.com/srbmaury/YAML-Visualizer/actions/workflows/codeql.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Live Demo**: [yaml-visualizer.netlify.app](https://yaml-visualizer.netlify.app) | **Project Structure**: [View as Diagram](https://yaml-visualizer.netlify.app/shared/cLqNv1m5bx)
 
@@ -138,8 +138,8 @@ Toggle light/dark themes from any page. All components and diagrams are fully th
 
 ```bash
 # Clone the repository
-git clone https://github.com/srbmaury/Data-Visualizer.git
-cd Data-Visualizer
+git clone https://github.com/srbmaury/YAML-Visualizer.git
+cd YAML-Visualizer
 
 # Install dependencies
 cd server && npm install
@@ -514,9 +514,9 @@ All pull requests must pass:
 
 ### Badges
 
-Current build status: [![CI](https://github.com/srbmaury/Data-Visualizer/actions/workflows/ci.yml/badge.svg)](https://github.com/srbmaury/Data-Visualizer/actions/workflows/ci.yml)
+Current build status: [![CI](https://github.com/srbmaury/YAML-Visualizer/actions/workflows/ci.yml/badge.svg)](https://github.com/srbmaury/YAML-Visualizer/actions/workflows/ci.yml)
 
-Security scan: [![CodeQL](https://github.com/srbmaury/Data-Visualizer/actions/workflows/codeql.yml/badge.svg)](https://github.com/srbmaury/Data-Visualizer/actions/workflows/codeql.yml)
+Security scan: [![CodeQL](https://github.com/srbmaury/YAML-Visualizer/actions/workflows/codeql.yml/badge.svg)](https://github.com/srbmaury/YAML-Visualizer/actions/workflows/codeql.yml)
 
 ---
 
@@ -540,7 +540,7 @@ This project is open source and available under the [MIT License](LICENSE).
 
 **Saurabh Maurya**
 - GitHub: [@srbmaury](https://github.com/srbmaury)
-- Project: [Data-Visualizer](https://github.com/srbmaury/Data-Visualizer)
+- Project: [Data-Visualizer](https://github.com/srbmaury/YAML-Visualizer)
 
 ---
 
