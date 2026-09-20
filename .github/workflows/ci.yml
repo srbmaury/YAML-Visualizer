@@ -76,7 +76,7 @@ jobs:
       - name: Build Production
         working-directory: ./client
         run: |
-          npm ci
+          npm ci --include=dev
           npm run build
         env:
           NODE_ENV: production
