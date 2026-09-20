@@ -540,7 +540,7 @@ This project is open source and available under the [MIT License](LICENSE).
 
 **Saurabh Maurya**
 - GitHub: [@srbmaury](https://github.com/srbmaury)
-- Project: [Data-Visualizer](https://github.com/srbmaury/YAML-Visualizer)
+- Project: [YAML-Visualizer](https://github.com/srbmaury/YAML-Visualizer)
 
 ---
 
