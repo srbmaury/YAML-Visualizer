@@ -312,15 +312,15 @@ grep -r "TODO\|FIXME\|XXX\|HACK" server/src client/src --exclude-dir=node_module
 
 ### GitHub Actions Dashboard
 
-Monitor all workflows: [Actions Tab](https://github.com/srbmaury-team/Data-Visualizer/actions)
+Monitor all workflows: [Actions Tab](https://github.com/srbmaury/YAML-Visualizer/actions)
 
 ### Status Badges
 
 Add these to your README:
 
 ```markdown
-[![CI](https://github.com/srbmaury-team/Data-Visualizer/actions/workflows/ci.yml/badge.svg)](https://github.com/srbmaury-team/Data-Visualizer/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/srbmaury-team/Data-Visualizer/actions/workflows/codeql.yml/badge.svg)](https://github.com/srbmaury-team/Data-Visualizer/actions/workflows/codeql.yml)
+[![CI](https://github.com/srbmaury/YAML-Visualizer/actions/workflows/ci.yml/badge.svg)](https://github.com/srbmaury/YAML-Visualizer/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/srbmaury/YAML-Visualizer/actions/workflows/codeql.yml/badge.svg)](https://github.com/srbmaury/YAML-Visualizer/actions/workflows/codeql.yml)
 ```
 
 ### Notifications

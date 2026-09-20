@@ -76,7 +76,7 @@ jobs:
       - name: Build Production
         working-directory: ./client
         run: |
-          npm ci
+          npm ci --include=dev
           npm run build
         env:
           NODE_ENV: production
@@ -125,17 +125,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check for Secrets
+      - name: Check for obvious hard-coded secrets
         run: |
-          if grep -rE "(api[_-]?key|password|secret|token)['\"]?\s*[:=]" server/src client/src \
+          # Avoid flagging ordinary runtime variables such as `token = jwt.sign(...)`,
+          # form fields such as `password: ''`, and test fixtures. Only flag
+          # credential-like keys assigned to a non-empty quoted literal.
+          if grep -rPn "(?i)(api[_-]?key|password|secret|token)\\s*[:=]\\s*['\"][^'\"]{12,}['\"]" \
+            server/src client/src \
             --exclude-dir=node_modules \
-            | grep -v ".env" \
-            | grep -v "JWT_SECRET" \
-            | grep -v "OPENAI_API_KEY"; then
-            echo "⚠️ Potential secrets found!"
+            --exclude='*.test.*' \
+            --exclude='*.spec.*' \
+            | grep -vE "(example|placeholder|dummy|hashedpassword)"; then
+            echo "⚠️ Potential hard-coded secret found!"
             exit 1
           fi
-          echo "✅ No secrets detected"
+          echo "✅ No obvious hard-coded secrets detected"
 
   # 8. All Checks Summary
   all-checks:
