@@ -258,11 +258,16 @@ const DiffComparePage = ({ isAuthenticated }) => {
   };
 
   const handleSwap = () => {
-    const temp = leftYaml;
-    setLeftYaml(rightYaml);
-    setRightYaml(temp);
+    const nextLeft = rightYaml;
+    const nextRight = leftYaml;
+
+    setLeftYaml(nextLeft);
+    setRightYaml(nextRight);
+
     if (diffResult) {
-      handleCompare();
+      setDiffResult(
+        DiffComputer.computeLineDiff(nextLeft.split('\n'), nextRight.split('\n'))
+      );
     }
   };
 
@@ -522,14 +527,16 @@ const DiffComparePage = ({ isAuthenticated }) => {
               </div>
             </div>
 
-            <div className="yaml-diff-side-result-panel">
-              <div className="yaml-diff-side-result-header">Diff Indicators (Side-by-Side)</div>
-              <DiffVisualization
-                diffResult={diffResult}
-                viewMode="side-by-side"
-                showLineNumbers={showLineNumbers}
-              />
-            </div>
+            {diffResult && (
+              <div className="yaml-diff-side-result-panel">
+                <div className="yaml-diff-side-result-header">Diff Indicators (Side-by-Side)</div>
+                <DiffVisualization
+                  diffResult={diffResult}
+                  viewMode="side-by-side"
+                  showLineNumbers={showLineNumbers}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="yaml-diff-unified-view">
