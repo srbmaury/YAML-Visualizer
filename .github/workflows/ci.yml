@@ -60,6 +60,7 @@ jobs:
         working-directory: ./client
         run: |
           npm ci
+          npm run test:diff
           npm run lint
 
   # 4. Frontend Build
