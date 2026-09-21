@@ -2,19 +2,31 @@
 .yaml-diff-compare-page {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
+  min-height: 100dvh;
   background: #f8f9fa;
 }
 
 .yaml-diff-header-section {
   background: white;
   border-bottom: 2px solid #e0e0e0;
-  padding: 1.5rem 2rem;
+  padding: 1rem 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .yaml-diff-title-container {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.yaml-diff-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.yaml-diff-heading-block {
+  min-width: 0;
 }
 
 .yaml-diff-back-btn {
@@ -30,7 +42,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 }
 
 .yaml-diff-back-btn:hover {
@@ -156,8 +168,8 @@
   gap: 1px;
   background: #e0e0e0;
   overflow: hidden;
-  min-height: min(72vh, calc(100vh - 220px));
-  height: min(72vh, calc(100vh - 220px));
+  min-height: clamp(520px, 64vh, 760px);
+  height: clamp(520px, 64vh, 760px);
 }
 
 .yaml-diff-side-by-side-workspace {
@@ -172,14 +184,14 @@
 
 .yaml-diff-editors-container-with-result {
   flex: 0 0 auto;
-  min-height: min(44vh, calc(100vh - 380px));
-  height: min(44vh, calc(100vh - 380px));
+  min-height: clamp(520px, 58vh, 700px);
+  height: clamp(520px, 58vh, 700px);
 }
 
 .yaml-diff-side-result-panel {
   flex: 0 0 auto;
-  min-height: 90vh;
-  height: min(56vh, calc(100vh - 300px));
+  min-height: clamp(560px, 68vh, 820px);
+  height: clamp(560px, 68vh, 820px);
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   background: #fff;
@@ -546,8 +558,8 @@
   .yaml-diff-editors-container {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
-    min-height: min(62vh, calc(100vh - 260px));
-    height: min(62vh, calc(100vh - 260px));
+    min-height: 58vh;
+    height: 58vh;
   }
 
   .yaml-diff-side-by-side-workspace {
@@ -557,13 +569,13 @@
 
   .yaml-diff-editors-container-with-result {
     flex: 0 0 auto;
-    min-height: min(34vh, calc(100vh - 420px));
-    height: min(34vh, calc(100vh - 420px));
+    min-height: 52vh;
+    height: 52vh;
   }
 
   .yaml-diff-side-result-panel {
-    min-height: 90vh;
-    height: min(44vh, calc(100vh - 320px));
+    min-height: 60vh;
+    height: 60vh;
   }
 
   .yaml-diff-view-controls {

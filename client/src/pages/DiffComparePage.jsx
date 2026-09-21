@@ -258,11 +258,16 @@ const DiffComparePage = ({ isAuthenticated }) => {
   };
 
   const handleSwap = () => {
-    const temp = leftYaml;
-    setLeftYaml(rightYaml);
-    setRightYaml(temp);
+    const nextLeft = rightYaml;
+    const nextRight = leftYaml;
+
+    setLeftYaml(nextLeft);
+    setRightYaml(nextRight);
+
     if (diffResult) {
-      handleCompare();
+      setDiffResult(
+        DiffComputer.computeLineDiff(nextLeft.split('\n'), nextRight.split('\n'))
+      );
     }
   };
 
@@ -299,18 +304,22 @@ const DiffComparePage = ({ isAuthenticated }) => {
     <div className="yaml-diff-compare-page">
       <div className="yaml-diff-header-section">
         <div className="yaml-diff-title-container">
-          <button
-            className="yaml-diff-back-btn"
-            onClick={() => navigate('/')}
-            title="Back to Editor"
-          >
-            ← Back to Editor
-          </button>
-          <button className="yaml-diff-back-btn" onClick={toggleDarkMode} title="Toggle dark mode">
-            {darkMode ? '☀️' : '🌙'}
-          </button>
-          <h1 className="yaml-diff-main-title">🔍 YAML Diff Compare</h1>
-          <p className="yaml-diff-subtitle">Compare two YAML files side by side to see differences</p>
+          <div className="yaml-diff-top-actions">
+            <button
+              className="yaml-diff-back-btn"
+              onClick={() => navigate('/')}
+              title="Back to Editor"
+            >
+              ← Back to Editor
+            </button>
+            <button className="yaml-diff-back-btn" onClick={toggleDarkMode} title="Toggle dark mode">
+              {darkMode ? '☀️' : '🌙'}
+            </button>
+          </div>
+          <div className="yaml-diff-heading-block">
+            <h1 className="yaml-diff-main-title">🔍 YAML Diff Compare</h1>
+            <p className="yaml-diff-subtitle">Compare two YAML files side by side to see differences</p>
+          </div>
         </div>
 
         <div className="yaml-diff-controls-container">
@@ -522,14 +531,16 @@ const DiffComparePage = ({ isAuthenticated }) => {
               </div>
             </div>
 
-            <div className="yaml-diff-side-result-panel">
-              <div className="yaml-diff-side-result-header">Diff Indicators (Side-by-Side)</div>
-              <DiffVisualization
-                diffResult={diffResult}
-                viewMode="side-by-side"
-                showLineNumbers={showLineNumbers}
-              />
-            </div>
+            {diffResult && (
+              <div className="yaml-diff-side-result-panel">
+                <div className="yaml-diff-side-result-header">Diff Indicators (Side-by-Side)</div>
+                <DiffVisualization
+                  diffResult={diffResult}
+                  viewMode="side-by-side"
+                  showLineNumbers={showLineNumbers}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="yaml-diff-unified-view">
